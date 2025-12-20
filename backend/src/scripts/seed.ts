@@ -62,9 +62,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL);
   const storeModuleService = container.resolve(Modules.STORE);
 
-  const countries = ["gb", "de", "dk", "se", "fr", "es", "it"];
+  // Países: Colombia (principal), Panamá y Estados Unidos
+  const countries = ["co", "pa", "us"];
 
-  logger.info("Seeding store data...");
+  logger.info("Sembrando datos de la tienda...");
   const [store] = await storeModuleService.listStores();
   await updateStoresWorkflow(container).run({
     input: {
@@ -72,10 +73,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
       update: {
         supported_locales: [
           {
-            locale_code: "fr-FR"
+            locale_code: "es-CO" // Español Colombia
           },
           {
-            locale_code: "es-ES"
+            locale_code: "es-PA" // Español Panamá
+          },
+          {
+            locale_code: "en-US" // Inglés Estados Unidos
           }
         ]
       },
@@ -86,14 +90,14 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
 
   if (!defaultSalesChannel.length) {
-    // create the default sales channel
+    // Crear el canal de ventas predeterminado
     const { result: salesChannelResult } = await createSalesChannelsWorkflow(
       container
     ).run({
       input: {
         salesChannelsData: [
           {
-            name: "Default Sales Channel",
+            name: "Canal de Ventas Predeterminado",
           },
         ],
       },
@@ -106,11 +110,14 @@ export default async function seedDemoData({ container }: ExecArgs) {
       store_id: store.id,
       supported_currencies: [
         {
-          currency_code: "eur",
+          currency_code: "cop", // Peso colombiano (principal)
           is_default: true,
         },
         {
-          currency_code: "usd",
+          currency_code: "usd", // Dólar estadounidense
+        },
+        {
+          currency_code: "pab", // Balboa panameño
         },
       ],
     },
@@ -124,13 +131,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
       },
     },
   });
-  logger.info("Seeding region data...");
+  logger.info("Sembrando datos de región...");
   const { result: regionResult } = await createRegionsWorkflow(container).run({
     input: {
       regions: [
         {
-          name: "Europe",
-          currency_code: "eur",
+          name: "América",
+          currency_code: "cop",
           countries,
           payment_providers: ["pp_system_default"],
         },
@@ -138,28 +145,28 @@ export default async function seedDemoData({ container }: ExecArgs) {
     },
   });
   const region = regionResult[0];
-  logger.info("Finished seeding regions.");
+  logger.info("Datos de región sembrados correctamente.");
 
-  logger.info("Seeding tax regions...");
+  logger.info("Sembrando regiones de impuestos...");
   await createTaxRegionsWorkflow(container).run({
     input: countries.map((country_code) => ({
       country_code,
       provider_id: "tp_system",
     })),
   });
-  logger.info("Finished seeding tax regions.");
+  logger.info("Regiones de impuestos sembradas correctamente.");
 
-  logger.info("Seeding stock location data...");
+  logger.info("Sembrando datos de ubicación de inventario...");
   const { result: stockLocationResult } = await createStockLocationsWorkflow(
     container
   ).run({
     input: {
       locations: [
         {
-          name: "European Warehouse",
+          name: "Almacén Medellín",
           address: {
-            city: "Copenhagen",
-            country_code: "DK",
+            city: "Medellín",
+            country_code: "CO",
             address_1: "",
           },
         },
@@ -186,7 +193,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
     },
   });
 
-  logger.info("Seeding fulfillment data...");
+  logger.info("Sembrando datos de envío...");
   const shippingProfiles = await fulfillmentModuleService.listShippingProfiles({
     type: "default",
   });
@@ -198,7 +205,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         input: {
           data: [
             {
-              name: "Default Shipping Profile",
+              name: "Perfil de Envío Predeterminado",
               type: "default",
             },
           ],
@@ -208,38 +215,22 @@ export default async function seedDemoData({ container }: ExecArgs) {
   }
 
   const fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
-    name: "European Warehouse delivery",
+    name: "Envío desde Almacén Medellín",
     type: "shipping",
     service_zones: [
       {
-        name: "Europe",
+        name: "América",
         geo_zones: [
           {
-            country_code: "gb",
+            country_code: "co",
             type: "country",
           },
           {
-            country_code: "de",
+            country_code: "pa",
             type: "country",
           },
           {
-            country_code: "dk",
-            type: "country",
-          },
-          {
-            country_code: "se",
-            type: "country",
-          },
-          {
-            country_code: "fr",
-            type: "country",
-          },
-          {
-            country_code: "es",
-            type: "country",
-          },
-          {
-            country_code: "it",
+            country_code: "us",
             type: "country",
           },
         ],
@@ -259,28 +250,32 @@ export default async function seedDemoData({ container }: ExecArgs) {
   await createShippingOptionsWorkflow(container).run({
     input: [
       {
-        name: "Standard Shipping",
+        name: "Envío Estándar",
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
         shipping_profile_id: shippingProfile.id,
         type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
+          label: "Estándar",
+          description: "Envío en 2-3 días.",
           code: "standard",
         },
         prices: [
           {
-            currency_code: "usd",
-            amount: 10,
+            currency_code: "cop",
+            amount: 15000, // ~$4 USD
           },
           {
-            currency_code: "eur",
-            amount: 10,
+            currency_code: "usd",
+            amount: 4,
+          },
+          {
+            currency_code: "pab",
+            amount: 4,
           },
           {
             region_id: region.id,
-            amount: 10,
+            amount: 15000,
           },
         ],
         rules: [
@@ -297,28 +292,32 @@ export default async function seedDemoData({ container }: ExecArgs) {
         ],
       },
       {
-        name: "Express Shipping",
+        name: "Envío Express",
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
         shipping_profile_id: shippingProfile.id,
         type: {
           label: "Express",
-          description: "Ship in 24 hours.",
+          description: "Envío en 24 horas.",
           code: "express",
         },
         prices: [
           {
-            currency_code: "usd",
-            amount: 10,
+            currency_code: "cop",
+            amount: 25000, // ~$7 USD
           },
           {
-            currency_code: "eur",
-            amount: 10,
+            currency_code: "usd",
+            amount: 7,
+          },
+          {
+            currency_code: "pab",
+            amount: 7,
           },
           {
             region_id: region.id,
-            amount: 10,
+            amount: 25000,
           },
         ],
         rules: [
@@ -336,7 +335,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       },
     ],
   });
-  logger.info("Finished seeding fulfillment data.");
+  logger.info("Datos de envío sembrados correctamente.");
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({
     input: {
@@ -344,9 +343,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
       add: [defaultSalesChannel[0].id],
     },
   });
-  logger.info("Finished seeding stock location data.");
+  logger.info("Datos de ubicación de inventario sembrados correctamente.");
 
-  logger.info("Seeding publishable API key data...");
+  logger.info("Sembrando datos de clave API publicable...");
   const { result: publishableApiKeyResult } = await createApiKeysWorkflow(
     container
   ).run({
@@ -368,9 +367,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
       add: [defaultSalesChannel[0].id],
     },
   });
-  logger.info("Finished seeding publishable API key data.");
+  logger.info("Datos de clave API publicable sembrados correctamente.");
 
-  logger.info("Seeding product data...");
+  logger.info("Sembrando datos de productos...");
 
   const { result: categoryResult } = await createProductCategoriesWorkflow(
     container
@@ -378,19 +377,19 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       product_categories: [
         {
-          name: "Shirts",
+          name: "Camisetas",
           is_active: true,
         },
         {
-          name: "Sweatshirts",
+          name: "Sudaderas",
           is_active: true,
         },
         {
-          name: "Pants",
+          name: "Pantalones",
           is_active: true,
         },
         {
-          name: "Merch",
+          name: "Merchandising",
           is_active: true,
         },
       ],
@@ -403,7 +402,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Medusa T-Shirt",
           category_ids: [
-            categoryResult.find((cat) => cat.name === "Shirts")!.id,
+            categoryResult.find((cat) => cat.name === "Camisetas")!.id,
           ],
           description:
             "Reimagine the feeling of a classic T-shirt. With our cotton T-shirts, everyday essentials no longer have to be ordinary.",
@@ -445,11 +444,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -463,11 +462,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -481,11 +480,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -499,11 +498,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -517,11 +516,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -535,11 +534,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -553,11 +552,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -571,11 +570,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -590,7 +589,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Medusa Sweatshirt",
           category_ids: [
-            categoryResult.find((cat) => cat.name === "Sweatshirts")!.id,
+            categoryResult.find((cat) => cat.name === "Sudaderas")!.id,
           ],
           description:
             "Reimagine the feeling of a classic sweatshirt. With our cotton sweatshirt, everyday essentials no longer have to be ordinary.",
@@ -621,11 +620,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -638,11 +637,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -655,11 +654,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -672,11 +671,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -691,7 +690,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Medusa Sweatpants",
           category_ids: [
-            categoryResult.find((cat) => cat.name === "Pants")!.id,
+            categoryResult.find((cat) => cat.name === "Pantalones")!.id,
           ],
           description:
             "Reimagine the feeling of classic sweatpants. With our cotton sweatpants, everyday essentials no longer have to be ordinary.",
@@ -722,11 +721,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -739,11 +738,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -756,11 +755,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -773,11 +772,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -792,7 +791,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         {
           title: "Medusa Shorts",
           category_ids: [
-            categoryResult.find((cat) => cat.name === "Merch")!.id,
+            categoryResult.find((cat) => cat.name === "Merchandising")!.id,
           ],
           description:
             "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
@@ -823,11 +822,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -840,11 +839,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -857,11 +856,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -874,11 +873,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
               },
               prices: [
                 {
-                  amount: 10,
-                  currency_code: "eur",
+                  amount: 40000,
+                  currency_code: "cop",
                 },
                 {
-                  amount: 15,
+                  amount: 10,
                   currency_code: "usd",
                 },
               ],
@@ -893,9 +892,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
       ],
     },
   });
-  logger.info("Finished seeding product data.");
+  logger.info("Datos de productos sembrados correctamente.");
 
-  logger.info("Seeding inventory levels.");
+  logger.info("Sembrando niveles de inventario...");
 
   const { data: inventoryItems } = await query.graph({
     entity: "inventory_item",
@@ -918,5 +917,5 @@ export default async function seedDemoData({ container }: ExecArgs) {
     },
   });
 
-  logger.info("Finished seeding inventory levels data.");
+  logger.info("Niveles de inventario sembrados correctamente.");
 }

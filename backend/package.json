@@ -15,6 +15,11 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "db:rollback": "medusa db:rollback --modules stock_location inventory product pricing promotion customer sales_channel cart region api_key store tax currency payment order settings auth user fulfillment notification cache event_bus workflows locking file",
+    "db:migrate": "medusa db:migrate",
+    "db:drop": "medusa exec ./src/scripts/drop-db.ts",
+    "db:reset": "yarn db:drop && yarn db:migrate && yarn seed",
+    "user:create": "medusa user -e admin@medusa-test.com -p supersecret",
     "start": "medusa start",
     "dev": "medusa develop",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
