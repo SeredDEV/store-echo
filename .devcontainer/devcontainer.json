@@ -1,0 +1,81 @@
+{
+    "name": "Tienda Domótica - Medusa + Next.js",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspaces/store-echo",
+    // Features to install
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {
+            "version": "latest"
+        }
+    },
+    // Configure tool-specific properties
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                "ms-azuretools.vscode-docker",
+                "ms-vscode.vscode-typescript-next",
+                "prisma.prisma",
+                "redhat.vscode-yaml",
+                "streetsidesoftware.code-spell-checker",
+                "eamodio.gitlens",
+                "github.copilot",
+                "formulahendry.auto-rename-tag",
+                "christian-kohler.path-intellisense",
+                "dsznajder.es7-react-js-snippets"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.eslint": "explicit"
+                },
+                "typescript.tsdk": "node_modules/typescript/lib",
+                "typescript.enablePromptUseWorkspaceTsdk": true
+            }
+        }
+    },
+    // Use 'forwardPorts' to make a list of ports inside the container available locally
+    "forwardPorts": [
+        9000, // Medusa Backend
+        5173, // Medusa Admin (Vite HMR)
+        8000, // Next.js Storefront
+        5432, // PostgreSQL
+        6379 // Redis
+    ],
+    // Port labels for better identification
+    "portsAttributes": {
+        "9000": {
+            "label": "Medusa Backend",
+            "onAutoForward": "notify"
+        },
+        "5173": {
+            "label": "Medusa Admin (Vite)",
+            "onAutoForward": "silent"
+        },
+        "8000": {
+            "label": "Next.js Storefront",
+            "onAutoForward": "openBrowser"
+        },
+        "5432": {
+            "label": "PostgreSQL",
+            "onAutoForward": "silent"
+        },
+        "6379": {
+            "label": "Redis",
+            "onAutoForward": "silent"
+        }
+    },
+    // Using root user for full administrative privileges
+    "remoteUser": "root",
+    // Environment variables
+    "containerEnv": {
+        "NODE_ENV": "development",
+        "DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/store_echo",
+        "REDIS_URL": "redis://redis:6379"
+    }
+}

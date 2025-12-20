@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Main development container
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/store-echo:cached
+    command: sleep infinity
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Medusa
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/store_echo
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret_jwt_token_change_in_production
+      COOKIE_SECRET: supersecret_cookie_change_in_production
+      NODE_ENV: development
+
+      # Next.js
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
+    ports:
+      - "9000:9000" # Medusa Backend
+      - "5173:5173" # Medusa Admin (Vite)
+      - "8000:8000" # Next.js Storefront
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17-alpine
+    container_name: medusa_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: store_echo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:8-alpine
+    container_name: medusa_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+
