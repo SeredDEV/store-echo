@@ -153,30 +153,27 @@ export default function ProductActions({
 
   return (
     <>
-      <div className="flex flex-col gap-y-2" ref={actionsRef}>
-        <div>
-          {(product.variants?.length ?? 0) > 1 && (
-            <div className="flex flex-col gap-y-4">
-              {(product.options || []).map((option) => {
-                const currentValue = options[option.id]
-                return (
-                  <div key={option.id}>
-                    <OptionSelect
-                      key={`${option.id}-${currentValue || "none"}`}
-                      option={option}
-                      current={currentValue}
-                      updateOption={setOptionValue}
-                      title={option.title ?? ""}
-                      data-testid="product-options"
-                      disabled={!!disabled || isAdding}
-                    />
-                  </div>
-                )
-              })}
-              <Divider />
-            </div>
-          )}
-        </div>
+      <div className="flex flex-col gap-6" ref={actionsRef}>
+        {(product.variants?.length ?? 0) > 1 && (
+          <div className="flex flex-col gap-6 pb-6 border-b border-ui-border-base">
+            {(product.options || []).map((option) => {
+              const currentValue = options[option.id]
+              return (
+                <div key={option.id}>
+                  <OptionSelect
+                    key={`${option.id}-${currentValue || "none"}`}
+                    option={option}
+                    current={currentValue}
+                    updateOption={setOptionValue}
+                    title={option.title ?? ""}
+                    data-testid="product-options"
+                    disabled={!!disabled || isAdding}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         <ProductPrice product={product} variant={selectedVariant} />
 
@@ -190,7 +187,7 @@ export default function ProductActions({
             !isValidVariant
           }
           variant="primary"
-          className="w-full h-10"
+          className="w-full h-12 text-base font-semibold rounded-lg"
           isLoading={isAdding}
           data-testid="add-product-button"
         >
