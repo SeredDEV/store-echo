@@ -11,12 +11,8 @@ type SortDropdownProps = {
 
 const sortOptions = [
   {
-    value: "popularity",
-    label: "Popularity",
-  },
-  {
-    value: "rating",
-    label: "Average Rating",
+    value: "created_at",
+    label: "Latest Arrivals",
   },
   {
     value: "price_asc",
@@ -25,10 +21,6 @@ const sortOptions = [
   {
     value: "price_desc",
     label: "High to Low",
-  },
-  {
-    value: "created_at",
-    label: "Latest Arrivals",
   },
 ]
 
@@ -55,7 +47,7 @@ export default function SortDropdown({ sortBy }: SortDropdownProps) {
     
     if (value === "popularity" || value === "rating") {
       // For now, use created_at as default for popularity and rating
-      // You can implement these later
+      // You can implement these later when backend supports them
       mappedValue = "created_at"
     } else if (value === "price_asc" || value === "price_desc" || value === "created_at") {
       mappedValue = value as SortOptions
@@ -66,26 +58,29 @@ export default function SortDropdown({ sortBy }: SortDropdownProps) {
     setIsOpen(false)
   }
 
-  // Find current option, default to first if not found
+  // Find current option, default to "Latest Arrivals" if not found
+  const defaultSort: SortOptions = "created_at"
+  const currentSortBy = (sortBy || defaultSort) as SortOptions
+  
   const currentOption = sortOptions.find((opt) => {
-    if (opt.value === sortBy) return true
+    if (opt.value === currentSortBy) return true
     // Map old values to new ones
-    if (sortBy === "price_asc" && opt.value === "price_asc") return true
-    if (sortBy === "price_desc" && opt.value === "price_desc") return true
-    if (sortBy === "created_at" && opt.value === "created_at") return true
+    if (currentSortBy === "price_asc" && opt.value === "price_asc") return true
+    if (currentSortBy === "price_desc" && opt.value === "price_desc") return true
+    if (currentSortBy === "created_at" && opt.value === "created_at") return true
     return false
-  }) || sortOptions[0]
+  }) || sortOptions.find(opt => opt.value === "created_at") || sortOptions[0]
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+        className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 transition-all duration-200 min-w-[160px]"
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <span>Default sorting</span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="flex-1 text-left">{currentOption.label}</span>
+        <ChevronDown className={`w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -94,16 +89,16 @@ export default function SortDropdown({ sortBy }: SortDropdownProps) {
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg">
+          <div className="absolute left-0 z-20 mt-1.5 w-full bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
             <div className="py-1">
               {sortOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleChange(option.value)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 ${
                     option.value === currentOption.value
-                      ? "bg-gray-50 text-gray-900 font-medium"
-                      : "text-gray-700"
+                      ? "bg-gray-100 text-gray-900 font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >
                   {option.label}
