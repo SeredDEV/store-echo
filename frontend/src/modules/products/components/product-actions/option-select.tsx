@@ -23,14 +23,15 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
     if (!option.values || !Array.isArray(option.values)) return []
     // Handle both array of strings and array of objects with value property
     return option.values
-      .map((v) => {
-        if (typeof v === 'string') return v.trim()
-        if (v && typeof v === 'object' && 'value' in v) return String(v.value).trim()
+      .map((v: any) => {
+        if (typeof v === "string") return v.trim()
+        if (v && typeof v === "object" && "value" in v)
+          return String(v.value).trim()
         return null
       })
       .filter((v): v is string => v !== null && v !== undefined)
   }, [option.values])
-  
+
   const isSelected = (value: string) => {
     if (!current) return false
     // Normalize comparison: trim whitespace
@@ -42,10 +43,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
       <span className="text-sm font-semibold text-ui-fg-base uppercase tracking-wide">
         {title}
       </span>
-      <div
-        className="flex flex-wrap gap-2"
-        data-testid={dataTestId}
-      >
+      <div className="flex flex-wrap gap-2" data-testid={dataTestId}>
         {filteredOptions.map((v) => {
           const selected = isSelected(v)
           return (
@@ -53,10 +51,12 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
               onClick={() => updateOption(option.id, v)}
               key={v}
               className={clx(
-                "min-w-[60px] px-4 py-2.5 rounded-lg border-2 font-medium text-sm transition-all duration-200",
+                "min-w-[60px] px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-300",
                 {
-                  "border-ui-border-interactive bg-ui-bg-interactive text-ui-fg-on-interactive shadow-sm": selected,
-                  "border-ui-border-base bg-ui-bg-base text-ui-fg-base hover:border-ui-border-interactive hover:bg-ui-bg-subtle": !selected,
+                  "bg-gray-900 text-white border-2 border-gray-900 shadow-lg hover:bg-gray-800 hover:shadow-xl transform scale-105":
+                    selected,
+                  "bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-400 hover:bg-gray-50":
+                    !selected,
                 }
               )}
               disabled={disabled}
