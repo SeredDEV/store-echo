@@ -410,12 +410,22 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
   logger.info("Datos de envío sembrados correctamente.");
 
+  // Vincular la ubicación de stock a todos los sales channels relevantes
+  // Esto asegura que el inventario esté disponible en todos los canales
+  const salesChannelsForStock = [
+    defaultSalesChannel[0].id,
+    sitioWebChannel[0].id,
+  ];
+
   await linkSalesChannelsToStockLocationWorkflow(container).run({
     input: {
       id: stockLocation.id,
-      add: [defaultSalesChannel[0].id],
+      add: salesChannelsForStock,
     },
   });
+  logger.info(
+    `Ubicación de inventario "${stockLocation.name}" vinculada a ${salesChannelsForStock.length} canales de ventas.`
+  );
   logger.info("Datos de ubicación de inventario sembrados correctamente.");
 
   logger.info("Sembrando datos de clave API publicable...");
@@ -434,12 +444,26 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
   const publishableApiKey = publishableApiKeyResult[0];
 
+  // Vincular la API key al canal principal y también a Sitio Web
+  // Esto asegura que los productos sean accesibles desde el frontend
+  const salesChannelsToLink = [
+    defaultSalesChannel[0].id,
+    sitioWebChannel[0].id,
+  ];
+
   await linkSalesChannelsToApiKeyWorkflow(container).run({
     input: {
       id: publishableApiKey.id,
-      add: [defaultSalesChannel[0].id],
+      add: salesChannelsToLink,
     },
   });
+
+  logger.info(
+    `Publishable API Key vinculada a ${salesChannelsToLink.length} canales: ${defaultSalesChannel[0].name}, ${sitioWebChannel[0].name}`
+  );
+  logger.info(
+    `API Key ID: ${publishableApiKey.id} - Configúrala en frontend/.env.local como NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`
+  );
   logger.info("Datos de clave API publicable sembrados correctamente.");
 
   logger.info("Sembrando datos de productos...");
@@ -1650,26 +1674,39 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Sembrando niveles de inventario...");
 
+  // Obtener todos los inventory items (se crean automáticamente cuando se crean productos)
   const { data: inventoryItems } = await query.graph({
     entity: "inventory_item",
     fields: ["id"],
   });
 
-  const inventoryLevels: CreateInventoryLevelInput[] = [];
-  for (const inventoryItem of inventoryItems) {
-    const inventoryLevel = {
-      location_id: stockLocation.id,
-      stocked_quantity: 1000000,
-      inventory_item_id: inventoryItem.id,
-    };
-    inventoryLevels.push(inventoryLevel);
+  if (!inventoryItems || inventoryItems.length === 0) {
+    logger.info(
+      "No se encontraron inventory items. Los productos pueden no tener inventario."
+    );
+  } else {
+    const inventoryLevels: CreateInventoryLevelInput[] = [];
+    for (const inventoryItem of inventoryItems) {
+      const inventoryLevel = {
+        location_id: stockLocation.id,
+        stocked_quantity: 1000000, // Stock disponible
+        reserved_quantity: 0, // Cantidad reservada (inicialmente 0)
+        inventory_item_id: inventoryItem.id,
+      };
+      inventoryLevels.push(inventoryLevel);
+    }
+
+    if (inventoryLevels.length > 0) {
+      await createInventoryLevelsWorkflow(container).run({
+        input: {
+          inventory_levels: inventoryLevels,
+        },
+      });
+      logger.info(
+        `Niveles de inventario sembrados correctamente para ${inventoryLevels.length} items en ubicación: ${stockLocation.name}`
+      );
+    } else {
+      logger.info("No hay niveles de inventario para crear.");
+    }
   }
-
-  await createInventoryLevelsWorkflow(container).run({
-    input: {
-      inventory_levels: inventoryLevels,
-    },
-  });
-
-  logger.info("Niveles de inventario sembrados correctamente.");
 }
