@@ -9,8 +9,9 @@ import PaginatedProducts from "@modules/store/templates/paginated-products"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
 import CategoryHeader from "@modules/categories/components/category-header"
+import { listCategories } from "@lib/data/categories"
 
-export default function CategoryTemplate({
+export default async function CategoryTemplate({
   category,
   sortBy,
   page,
@@ -27,6 +28,9 @@ export default function CategoryTemplate({
   const sort = sortBy || "created_at"
 
   if (!category || !countryCode) notFound()
+
+  // Obtener todas las categorías para el filtro
+  const categories = await listCategories().catch(() => [])
 
   const parents = [] as HttpTypes.StoreProductCategory[]
 
@@ -45,15 +49,16 @@ export default function CategoryTemplate({
       data-testid="category-container"
     >
       {/* Sidebar de Filtros - Izquierda */}
-      <aside className="w-full small:w-64 small:min-w-[250px] small:pr-8 mb-8 small:mb-0">
+      <aside className="w-full small:w-64 small:min-w-[250px] small:pr-24 mb-8 small:mb-0">
         <RefinementList 
           category={category}
+          categories={categories}
           data-testid="sort-by-container" 
         />
       </aside>
 
       {/* Contenido Principal - Derecha */}
-      <div className="flex-1 w-full">
+      <div className="flex-1 w-full pl-2">
         {/* Breadcrumbs */}
         <div className="flex flex-row mb-6 text-sm gap-2 text-gray-600">
           {parents &&

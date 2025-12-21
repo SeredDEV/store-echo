@@ -3,7 +3,7 @@
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react"
 import { ChevronDown } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
-import { Fragment, useState } from "react"
+import { Fragment, useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
@@ -12,21 +12,45 @@ type CategoryDropdownProps = {
 }
 
 export default function CategoryDropdown({ categories }: CategoryDropdownProps) {
-  const [selected, setSelected] = useState<HttpTypes.StoreProductCategory | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
-  const handleChange = (category: HttpTypes.StoreProductCategory | null) => {
-    setSelected(category)
-    if (category) {
-      router.push(`/categories/${category.handle}`)
-    } else {
-      router.push("/store")
-    }
-  }
-
   // Filtrar solo categorías principales (sin parent)
   const mainCategories = categories?.filter((cat) => !cat.parent_category) || []
+
+  // Detectar categoría actual desde el pathname (puede incluir countryCode)
+  const getCurrentCategory = () => {
+    const categoriesIndex = pathname.indexOf("/categories/")
+    if (categoriesIndex !== -1) {
+      const afterCategories = pathname.substring(categoriesIndex + "/categories/".length)
+      const categoryHandle = afterCategories.split("?")[0].split("/")[0]
+      return mainCategories.find((cat) => cat.handle === categoryHandle) || null
+    }
+    return null
+  }
+
+  const [selected, setSelected] = useState<HttpTypes.StoreProductCategory | null>(
+    getCurrentCategory()
+  )
+
+  // Sincronizar cuando cambia el pathname o las categorías
+  useEffect(() => {
+    setSelected(getCurrentCategory())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, mainCategories])
+
+  const handleChange = (category: HttpTypes.StoreProductCategory | null) => {
+    setSelected(category)
+    // Extraer countryCode del pathname actual si existe
+    const pathParts = pathname.split("/").filter(Boolean)
+    const countryCode = pathParts[0] || "co" // Default a "co" si no se encuentra
+    
+    if (category) {
+      router.push(`/${countryCode}/categories/${category.handle}`)
+    } else {
+      router.push(`/${countryCode}/store`)
+    }
+  }
 
   return (
     <Listbox value={selected} onChange={handleChange}>

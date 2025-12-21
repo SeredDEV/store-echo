@@ -21,6 +21,7 @@ export default async function PaginatedProducts({
   page,
   collectionId,
   categoryId,
+  categoryIds,
   productsIds,
   view = "grid-3",
   countryCode,
@@ -29,6 +30,7 @@ export default async function PaginatedProducts({
   page: number
   collectionId?: string
   categoryId?: string
+  categoryIds?: string[]
   productsIds?: string[]
   view?: ViewMode
   countryCode: string
@@ -41,7 +43,10 @@ export default async function PaginatedProducts({
     queryParams["collection_id"] = [collectionId]
   }
 
-  if (categoryId) {
+  // Priorizar categoryIds (múltiples) sobre categoryId (único)
+  if (categoryIds && categoryIds.length > 0) {
+    queryParams["category_id"] = categoryIds
+  } else if (categoryId) {
     queryParams["category_id"] = [categoryId]
   }
 
