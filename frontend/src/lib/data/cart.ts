@@ -67,11 +67,13 @@ export async function getOrSetCart(countryCode: string) {
 
   if (!cart) {
     const locale = await getLocale()
-    const cartResp = await sdk.store.cart.create(
-      { region_id: region.id, locale: locale as string },
-      {},
-      headers
-    )
+    const cartData: { region_id: string; locale?: string } = {
+      region_id: region.id,
+    }
+    if (locale) {
+      cartData.locale = locale
+    }
+    const cartResp = await sdk.store.cart.create(cartData, {}, headers)
     cart = cartResp.cart
 
     await setCartId(cart.id)
@@ -206,7 +208,7 @@ export async function deleteLineItem(lineId: string) {
   }
 
   await sdk.store.cart
-    .deleteLineItem(cartId, lineId, headers)
+    .deleteLineItem(cartId, lineId, {}, headers)
     .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
