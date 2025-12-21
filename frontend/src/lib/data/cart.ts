@@ -3,7 +3,7 @@
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
-import { revalidateTag } from "next/cache"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import {
   getAuthHeaders,
@@ -346,31 +346,33 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       throw new Error("No existing cart found when setting addresses")
     }
 
+    const shippingAddress = {
+      first_name: formData.get("shipping_address.first_name") as string,
+      last_name: formData.get("shipping_address.last_name") as string,
+      address_1: formData.get("shipping_address.address_1") as string,
+      address_2: formData.get("shipping_address.address_2") as string || "",
+      company: formData.get("shipping_address.company") as string,
+      postal_code: formData.get("shipping_address.postal_code") as string,
+      city: formData.get("shipping_address.city") as string,
+      country_code: formData.get("shipping_address.country_code") as string,
+      province: formData.get("shipping_address.province") as string,
+      phone: formData.get("shipping_address.phone") as string,
+    }
+
     const data = {
-      shipping_address: {
-        first_name: formData.get("shipping_address.first_name"),
-        last_name: formData.get("shipping_address.last_name"),
-        address_1: formData.get("shipping_address.address_1"),
-        address_2: "",
-        company: formData.get("shipping_address.company"),
-        postal_code: formData.get("shipping_address.postal_code"),
-        city: formData.get("shipping_address.city"),
-        country_code: formData.get("shipping_address.country_code"),
-        province: formData.get("shipping_address.province"),
-        phone: formData.get("shipping_address.phone"),
-      },
+      shipping_address: shippingAddress,
       email: formData.get("email"),
     } as any
 
     const sameAsBilling = formData.get("same_as_billing")
-    if (sameAsBilling === "on") data.billing_address = data.shipping_address
+    if (sameAsBilling === "on") data.billing_address = shippingAddress
 
     if (sameAsBilling !== "on")
       data.billing_address = {
         first_name: formData.get("billing_address.first_name"),
         last_name: formData.get("billing_address.last_name"),
         address_1: formData.get("billing_address.address_1"),
-        address_2: "",
+        address_2: formData.get("billing_address.address_2") || "",
         company: formData.get("billing_address.company"),
         postal_code: formData.get("billing_address.postal_code"),
         city: formData.get("billing_address.city"),
@@ -378,7 +380,52 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
         province: formData.get("billing_address.province"),
         phone: formData.get("billing_address.phone"),
       }
+    
     await updateCart(data)
+
+    // Guardar la dirección como dirección guardada del cliente si está autenticado
+    const { retrieveCustomer } = await import("./customer")
+    const customer = await retrieveCustomer().catch(() => null)
+    
+    if (customer) {
+      const headers = {
+        ...(await getAuthHeaders()),
+      }
+
+      if (headers) {
+        try {
+          // Verificar si la dirección ya existe
+          const existingAddress = customer.addresses?.find(
+            (addr) =>
+              addr.address_1 === shippingAddress.address_1 &&
+              addr.city === shippingAddress.city &&
+              addr.postal_code === shippingAddress.postal_code &&
+              addr.country_code === shippingAddress.country_code
+          )
+
+          // Solo guardar si no existe
+          if (!existingAddress) {
+            const isDefaultShipping = customer.addresses?.length === 0
+            
+            await sdk.store.customer.createAddress(
+              {
+                ...shippingAddress,
+                is_default_shipping: isDefaultShipping,
+                is_default_billing: sameAsBilling === "on" && isDefaultShipping,
+              },
+              {},
+              headers
+            )
+            
+            const customerCacheTag = await getCacheTag("customers")
+            revalidateTag(customerCacheTag)
+          }
+        } catch (error) {
+          // Si falla al guardar la dirección, no interrumpimos el flujo del checkout
+          console.error("Error saving customer address:", error)
+        }
+      }
+    }
   } catch (e: any) {
     return e.message
   }
@@ -417,8 +464,26 @@ export async function placeOrder(cartId?: string) {
     const countryCode =
       cartRes.order.shipping_address?.country_code?.toLowerCase()
 
+    // Revalidar tags de caché
     const orderCacheTag = await getCacheTag("orders")
-    revalidateTag(orderCacheTag)
+    const customerCacheTag = await getCacheTag("customers")
+    
+    if (orderCacheTag) {
+      revalidateTag(orderCacheTag)
+    }
+    if (customerCacheTag) {
+      revalidateTag(customerCacheTag)
+    }
+
+    // Revalidar rutas específicas que muestran pedidos
+    // Usar revalidatePath sin especificar type para invalidar tanto page como layout
+    revalidatePath(`/${countryCode}/account/orders`)
+    revalidatePath(`/${countryCode}/account`)
+    revalidatePath(`/${countryCode}/account/@dashboard/orders`)
+    revalidatePath(`/${countryCode}/account/@dashboard`)
+    
+    // También revalidar el layout completo de account para asegurar que se actualice
+    revalidatePath(`/${countryCode}/account`, 'layout')
 
     removeCartId()
     redirect(`/${countryCode}/order/${cartRes?.order.id}/confirmed`)

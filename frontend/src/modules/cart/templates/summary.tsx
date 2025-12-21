@@ -1,6 +1,7 @@
 "use client"
 
 import { Button, Heading } from "@medusajs/ui"
+import { useRouter } from "next/navigation"
 
 import CartTotals from "@modules/common/components/cart-totals"
 import Divider from "@modules/common/components/divider"
@@ -12,6 +13,8 @@ type SummaryProps = {
   cart: HttpTypes.StoreCart & {
     promotions: HttpTypes.StorePromotion[]
   }
+  customer: HttpTypes.StoreCustomer | null
+  countryCode: string
 }
 
 function getCheckoutStep(cart: HttpTypes.StoreCart) {
@@ -24,8 +27,16 @@ function getCheckoutStep(cart: HttpTypes.StoreCart) {
   }
 }
 
-const Summary = ({ cart }: SummaryProps) => {
+const Summary = ({ cart, customer, countryCode }: SummaryProps) => {
+  const router = useRouter()
   const step = getCheckoutStep(cart)
+
+  const handleCheckoutClick = (e: React.MouseEvent) => {
+    if (!customer) {
+      e.preventDefault()
+      router.push(`/${countryCode}/account`)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-y-4">
@@ -36,10 +47,13 @@ const Summary = ({ cart }: SummaryProps) => {
       <Divider />
       <CartTotals totals={cart} />
       <LocalizedClientLink
-        href={"/checkout?step=" + step}
+        href={customer ? `/checkout?step=${step}` : `/${countryCode}/account`}
         data-testid="checkout-button"
+        onClick={handleCheckoutClick}
       >
-        <Button className="w-full h-10">Go to checkout</Button>
+        <Button className="w-full h-10">
+          {customer ? "Go to checkout" : "Sign in to checkout"}
+        </Button>
       </LocalizedClientLink>
     </div>
   )
