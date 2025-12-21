@@ -1445,6 +1445,93 @@ export default async function seedDemoData({ container }: ExecArgs) {
             },
           ],
         },
+        {
+          title: "Echo Dot",
+          category_ids: [
+            categoryResult.find((cat) => cat.name === "Merchandising")!.id,
+          ],
+          description:
+            "Echo Dot (5ª generación), altavoz inteligente con Alexa | Sonido nítido y graves mejorados | Control por voz para música, noticias y más",
+          handle: "echo-dot",
+          weight: 300,
+          status: ProductStatus.PUBLISHED,
+          shipping_profile_id: shippingProfile.id,
+          images: [
+            // Imágenes color Negro
+            {
+              url: "https://http2.mlstatic.com/D_NQ_NP_2X_964890-MLA96099646259_102025-F.webp",
+            },
+            {
+              url: "https://http2.mlstatic.com/D_NQ_NP_2X_748090-MLA79401219676_092024-F.webp",
+            },
+            {
+              url: "https://http2.mlstatic.com/D_NQ_NP_2X_785471-MLA79645484437_092024-F.webp",
+            },
+            {
+              url: "https://http2.mlstatic.com/D_NQ_NP_2X_698430-MLA79401219682_092024-F.webp",
+            },
+            // Imágenes color Blanco
+            {
+              url: "https://http2.mlstatic.com/D_NQ_NP_2X_914167-MLA98306848676_112025-F.webp",
+            },
+            // Imágenes color Azul
+            {
+              url: "https://http2.mlstatic.com/D_NQ_NP_2X_611151-MLA95712609398_102025-F.webp",
+            },
+          ],
+          options: [
+            {
+              title: "Color",
+              values: ["Negro", "Blanco", "Azul"],
+            },
+          ],
+          variants: [
+            {
+              title: "Negro",
+              sku: "ECHO-DOT-NEGRO",
+              options: {
+                Color: "Negro",
+              },
+              prices: [
+                {
+                  amount: 220000,
+                  currency_code: "cop",
+                },
+              ],
+            },
+            {
+              title: "Blanco",
+              sku: "ECHO-DOT-BLANCO",
+              options: {
+                Color: "Blanco",
+              },
+              prices: [
+                {
+                  amount: 230000,
+                  currency_code: "cop",
+                },
+              ],
+            },
+            {
+              title: "Azul",
+              sku: "ECHO-DOT-AZUL",
+              options: {
+                Color: "Azul",
+              },
+              prices: [
+                {
+                  amount: 240000,
+                  currency_code: "cop",
+                },
+              ],
+            },
+          ],
+          sales_channels: [
+            {
+              id: defaultSalesChannel[0].id,
+            },
+          ],
+        },
       ],
     },
   });
@@ -1455,6 +1542,81 @@ export default async function seedDemoData({ container }: ExecArgs) {
     entity: "product",
     fields: ["id", "title", "handle"],
   });
+
+  // Asociar imágenes específicas a las variantes del Echo Dot
+  try {
+    const { data: echoDotProducts } = await query.graph({
+      entity: "product",
+      fields: ["id", "handle"],
+      filters: {
+        handle: "echo-dot",
+      },
+    });
+
+    if (echoDotProducts && echoDotProducts.length > 0) {
+      const product = echoDotProducts[0];
+      const productWithVariants = await productModuleService.retrieveProduct(
+        product.id,
+        {
+          relations: ["variants", "variants.images", "images"],
+        }
+      );
+
+      // URLs de imágenes por color
+      const negroImageUrls = [
+        "https://http2.mlstatic.com/D_NQ_NP_2X_964890-MLA96099646259_102025-F.webp",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_748090-MLA79401219676_092024-F.webp",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_785471-MLA79645484437_092024-F.webp",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_698430-MLA79401219682_092024-F.webp",
+      ];
+      const blancoImageUrls = [
+        "https://http2.mlstatic.com/D_NQ_NP_2X_914167-MLA98306848676_112025-F.webp",
+      ];
+      const azulImageUrls = [
+        "https://http2.mlstatic.com/D_NQ_NP_2X_611151-MLA95712609398_102025-F.webp",
+      ];
+
+      // Encontrar las imágenes del producto por URL
+      const productImages = productWithVariants.images || [];
+      const getImageIdsByUrls = (urls: string[]) => {
+        return productImages
+          .filter((img: any) => urls.includes(img.url))
+          .map((img: any) => img.id);
+      };
+
+      // Asociar imágenes a cada variante
+      if (productWithVariants.variants) {
+        for (const variant of productWithVariants.variants) {
+          let imageIds: string[] = [];
+
+          if (variant.title === "Negro") {
+            imageIds = getImageIdsByUrls(negroImageUrls);
+          } else if (variant.title === "Blanco") {
+            imageIds = getImageIdsByUrls(blancoImageUrls);
+          } else if (variant.title === "Azul") {
+            imageIds = getImageIdsByUrls(azulImageUrls);
+          }
+
+          if (imageIds.length > 0) {
+            // Nota: En Medusa v2, las imágenes de variantes se pueden asociar de esta manera
+            await (productModuleService as any).updateProductVariants(
+              variant.id,
+              {
+                images: imageIds,
+              }
+            );
+          }
+        }
+      }
+      logger.info("Imágenes asociadas a variantes del Echo Dot correctamente.");
+    }
+  } catch (error: any) {
+    logger.info(
+      `No se pudieron asociar imágenes a variantes del Echo Dot: ${
+        error?.message || String(error)
+      }`
+    );
+  }
 
   logger.info("Sembrando tipos de producto...");
   try {
