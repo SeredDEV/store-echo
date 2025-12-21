@@ -29,10 +29,13 @@ export default class MeilisearchModuleService {
     }
     this.client = new MeiliSearch(clientOptions);
     this.options = options;
-    
+
     // Crear el índice automáticamente al inicializar (async, no bloquea)
     this.ensureIndexExists("product").catch((error) => {
-      console.warn("No se pudo crear el índice de Meilisearch al inicializar:", error.message);
+      console.warn(
+        "No se pudo crear el índice de Meilisearch al inicializar:",
+        error.message
+      );
     });
   }
 
@@ -54,7 +57,10 @@ export default class MeilisearchModuleService {
       await index.getSettings();
     } catch (error: any) {
       // Si el índice no existe, crearlo explícitamente
-      if (error.code === "index_not_found" || error.message?.includes("not found")) {
+      if (
+        error.code === "index_not_found" ||
+        error.message?.includes("not found")
+      ) {
         await this.client.createIndex(indexName, { primaryKey: "id" });
       } else {
         throw error;
@@ -67,10 +73,10 @@ export default class MeilisearchModuleService {
     type: MeilisearchIndexType = "product"
   ) {
     const indexName = await this.getIndexName(type);
-    
+
     // Asegurar que el índice existe
     await this.ensureIndexExists(type);
-    
+
     const index = this.client.index(indexName);
 
     // Transform data to include id as primary key for Meilisearch
@@ -127,10 +133,10 @@ export default class MeilisearchModuleService {
     type: MeilisearchIndexType = "product"
   ) {
     const indexName = await this.getIndexName(type);
-    
+
     // Asegurar que el índice existe
     await this.ensureIndexExists(type);
-    
+
     const index = this.client.index(indexName);
 
     // Delete all documents first (si existen)
@@ -148,6 +154,21 @@ export default class MeilisearchModuleService {
 
     if (documents.length > 0) {
       await index.addDocuments(documents);
+    }
+  }
+
+  async clearAll(type: MeilisearchIndexType = "product") {
+    const indexName = await this.getIndexName(type);
+    const index = this.client.index(indexName);
+
+    try {
+      await index.deleteAllDocuments();
+      return {
+        success: true,
+        message: `Todos los documentos del índice '${indexName}' han sido eliminados`,
+      };
+    } catch (error: any) {
+      throw new Error(`Error al limpiar el índice: ${error.message || error}`);
     }
   }
 }

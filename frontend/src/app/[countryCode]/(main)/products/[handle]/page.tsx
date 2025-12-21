@@ -98,6 +98,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 }
 
+// Hacer la página dinámica cuando hay v_id para evitar caché de precios
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ProductPage(props: Props) {
   const params = await props.params
   const region = await getRegion(params.countryCode)
@@ -109,9 +113,11 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
+  // Usar no-cache cuando hay v_id para obtener precios frescos de la variante
   const pricedProduct = await listProducts({
     countryCode: params.countryCode,
     queryParams: { handle: params.handle },
+    useCache: !selectedVariantId, // Desactivar caché si hay variante seleccionada
   }).then(({ response }) => response.products[0])
 
   const images = getImagesForVariant(pricedProduct, selectedVariantId)

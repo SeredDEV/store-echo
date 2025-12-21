@@ -4,6 +4,7 @@ import ProductActions from "@modules/products/components/product-actions"
 
 /**
  * Fetches real time pricing for a product and renders the product actions component.
+ * Uses no-cache to ensure fresh pricing data when variant changes.
  */
 export default async function ProductActionsWrapper({
   id,
@@ -12,9 +13,11 @@ export default async function ProductActionsWrapper({
   id: string
   region: HttpTypes.StoreRegion
 }) {
+  // Usar no-cache para obtener precios frescos cuando cambia la variante
   const product = await listProducts({
     queryParams: { id: [id] },
     regionId: region.id,
+    useCache: false, // Desactivar caché para obtener precios actualizados
   }).then(({ response }) => response.products[0])
 
   if (!product) {
