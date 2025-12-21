@@ -66,9 +66,9 @@ export async function getOrSetCart(countryCode: string) {
   }
 
   if (!cart) {
-    const locale = (await getLocale()) || "en-US"
+    const locale = await getLocale()
     const cartResp = await sdk.store.cart.create(
-      { region_id: region.id, locale: locale },
+      { region_id: region.id, locale: locale as string },
       {},
       headers
     )

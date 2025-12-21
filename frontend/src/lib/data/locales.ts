@@ -25,14 +25,11 @@ export const listLocales = async (): Promise<Locale[] | null> => {
     })
     .then(({ locales }) => locales)
     .catch((error) => {
-      // Silently return null on 404 - this endpoint doesn't exist in Medusa
-      if (error?.status === 404 || error?.response?.status === 404) {
+      // Return null on 404 to hide selector
+      if (error?.response?.status === 404) {
         return null
       }
-      // Only log non-404 errors
-      if (process.env.NODE_ENV === "development") {
-        console.error("Failed to fetch locales:", error)
-      }
+      console.error("Failed to fetch locales:", error)
       return null
     })
 }
