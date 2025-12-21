@@ -46,11 +46,11 @@ export default async function Nav() {
             <CategoryDropdown categories={categories || []} />
             <LocalizedClientLink
               href="/store"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200 group bg-gray-50"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#0a0a0a] hover:bg-gray-200 hover:text-gray-900 hover:shadow-md hover:scale-[1.02] transition-all duration-200 group bg-gray-50"
               data-testid="nav-store-link"
             >
               <svg
-                className="w-5 h-5 text-gray-500 group-hover:text-gray-700"
+                className="w-5 h-5 text-gray-500 group-hover:text-gray-900 transition-colors duration-200"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
