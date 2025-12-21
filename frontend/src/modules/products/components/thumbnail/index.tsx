@@ -3,6 +3,7 @@ import Image from "next/image"
 import React from "react"
 
 import PlaceholderImage from "@modules/common/icons/placeholder-image"
+import ImageGallery from "./image-gallery"
 
 type ThumbnailProps = {
   thumbnail?: string | null
@@ -42,7 +43,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       data-testid={dataTestid}
     >
       <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
-        <ImageOrPlaceholder image={initialImage} size={size} />
+        <ImageGallery thumbnail={thumbnail} images={images} size={size} />
       </div>
     </Container>
   )
