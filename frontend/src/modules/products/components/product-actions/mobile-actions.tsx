@@ -15,7 +15,7 @@ type MobileActionsProps = {
   product: HttpTypes.StoreProduct
   variant?: HttpTypes.StoreProductVariant
   options: Record<string, string | undefined>
-  updateOptions: (title: string, value: string) => void
+  updateOptions: (optionId: string, value: string) => void
   inStock?: boolean
   handleAddToCart: () => void
   isAdding?: boolean

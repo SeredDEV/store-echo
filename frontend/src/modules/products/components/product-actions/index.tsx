@@ -40,13 +40,29 @@ export default function ProductActions({
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
 
-  // If there is only 1 variant, preselect the options
+  // Initialize or sync options from URL or single variant
   useEffect(() => {
+    const variantIdFromUrl = searchParams.get("v_id")
+
+    // If there's a variant ID in URL, use that
+    if (variantIdFromUrl && product.variants) {
+      const variant = product.variants.find((v) => v.id === variantIdFromUrl)
+      if (variant) {
+        const variantOptions = optionsAsKeymap(variant.options)
+        setOptions(variantOptions ?? {})
+        return
+      }
+    }
+
+    // Otherwise, if there is only 1 variant, preselect the options
     if (product.variants?.length === 1) {
       const variantOptions = optionsAsKeymap(product.variants[0].options)
       setOptions(variantOptions ?? {})
+    } else if (!variantIdFromUrl) {
+      // If no variant in URL and multiple variants, reset options
+      setOptions({})
     }
-  }, [product.variants])
+  }, [searchParams, product.variants])
 
   const selectedVariant = useMemo(() => {
     if (!product.variants || product.variants.length === 0) {
@@ -142,11 +158,13 @@ export default function ProductActions({
           {(product.variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-y-4">
               {(product.options || []).map((option) => {
+                const currentValue = options[option.id]
                 return (
                   <div key={option.id}>
                     <OptionSelect
+                      key={`${option.id}-${currentValue || "none"}`}
                       option={option}
-                      current={options[option.id]}
+                      current={currentValue}
                       updateOption={setOptionValue}
                       title={option.title ?? ""}
                       data-testid="product-options"
