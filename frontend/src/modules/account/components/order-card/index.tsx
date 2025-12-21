@@ -1,9 +1,13 @@
+"use client"
+
 import { Button } from "@medusajs/ui"
 import { useMemo } from "react"
+import Image from "next/image"
+import PlaceholderImage from "@modules/common/icons/placeholder-image"
 
-import Thumbnail from "@modules/products/components/thumbnail"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { convertToLocale } from "@lib/util/money"
+import { getVariantImages } from "@lib/util/variant-images"
 import { HttpTypes } from "@medusajs/types"
 
 type OrderCardProps = {
@@ -44,13 +48,33 @@ const OrderCard = ({ order }: OrderCardProps) => {
       </div>
       <div className="grid grid-cols-2 small:grid-cols-4 gap-4 my-4">
         {order.items?.slice(0, 3).map((i) => {
+          const variantImages = getVariantImages(i)
+          const thumbnailUrl = variantImages.length > 0 
+            ? variantImages[0]?.url 
+            : i.thumbnail
+
           return (
             <div
               key={i.id}
               className="flex flex-col gap-y-2"
               data-testid="order-item"
             >
-              <Thumbnail thumbnail={i.thumbnail} images={[]} size="full" />
+              <div className="relative w-full aspect-square bg-ui-bg-subtle rounded-large overflow-hidden">
+                {thumbnailUrl ? (
+                  <Image
+                    src={thumbnailUrl}
+                    alt={i.title || "Product"}
+                    fill
+                    className="object-cover object-center"
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                    quality={50}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <PlaceholderImage size={24} />
+                  </div>
+                )}
+              </div>
               <div className="flex items-center text-small-regular text-ui-fg-base">
                 <span
                   className="text-ui-fg-base font-semibold"

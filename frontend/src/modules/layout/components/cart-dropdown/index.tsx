@@ -7,15 +7,46 @@ import {
   Transition,
 } from "@headlessui/react"
 import { convertToLocale } from "@lib/util/money"
+import { getVariantImages } from "@lib/util/variant-images"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@medusajs/ui"
 import DeleteButton from "@modules/common/components/delete-button"
 import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import Thumbnail from "@modules/products/components/thumbnail"
 import { usePathname } from "next/navigation"
-import { Fragment, useEffect, useRef, useState } from "react"
+import Image from "next/image"
+import PlaceholderImage from "@modules/common/icons/placeholder-image"
+import { Fragment, useEffect, useRef, useState, useMemo } from "react"
+
+// Componente para mostrar el thumbnail correcto según la variante
+// Versión simplificada sin flechas de navegación para el dropdown del carrito
+const CartItemThumbnail = ({ item }: { item: HttpTypes.StoreCartLineItem }) => {
+  const variantImages = useMemo(() => getVariantImages(item), [item])
+
+  // Obtener la URL de la imagen de la variante
+  const imageUrl =
+    variantImages.length > 0 ? variantImages[0]?.url : item.thumbnail
+
+  return (
+    <div className="relative w-24 h-24 bg-ui-bg-subtle rounded-large overflow-hidden">
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={item.title || "Product"}
+          fill
+          className="object-cover object-center"
+          sizes="96px"
+          quality={50}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <PlaceholderImage size={16} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 const CartDropdown = ({
   cart: cartState,
@@ -46,14 +77,14 @@ const CartDropdown = ({
           setDropdownRight(Math.max(8, right))
         }
       }
-      
+
       calculatePosition()
-      window.addEventListener('resize', calculatePosition)
-      window.addEventListener('scroll', calculatePosition)
-      
+      window.addEventListener("resize", calculatePosition)
+      window.addEventListener("scroll", calculatePosition)
+
       return () => {
-        window.removeEventListener('resize', calculatePosition)
-        window.removeEventListener('scroll', calculatePosition)
+        window.removeEventListener("resize", calculatePosition)
+        window.removeEventListener("scroll", calculatePosition)
       }
     }
   }, [cartDropdownOpen])
@@ -148,8 +179,8 @@ const CartDropdown = ({
             static
             className="hidden small:block fixed bg-white border-x border-b border-gray-200 w-[420px] text-ui-fg-base shadow-lg z-50"
             style={{
-              top: '80px', // h-20 = 80px
-              right: `${dropdownRight}px`
+              top: "80px", // h-20 = 80px
+              right: `${dropdownRight}px`,
             }}
             data-testid="nav-cart-dropdown"
           >
@@ -175,11 +206,7 @@ const CartDropdown = ({
                           href={`/products/${item.product_handle}`}
                           className="w-24"
                         >
-                          <Thumbnail
-                            thumbnail={item.thumbnail}
-                            images={item.variant?.product?.images}
-                            size="square"
-                          />
+                          <CartItemThumbnail item={item} />
                         </LocalizedClientLink>
                         <div className="flex flex-col justify-between flex-1">
                           <div className="flex flex-col flex-1">

@@ -1,10 +1,15 @@
+"use client"
+
 import { HttpTypes } from "@medusajs/types"
 import { Table, Text } from "@medusajs/ui"
+import { getVariantImages } from "@lib/util/variant-images"
+import Image from "next/image"
+import PlaceholderImage from "@modules/common/icons/placeholder-image"
+import { useMemo } from "react"
 
 import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LineItemUnitPrice from "@modules/common/components/line-item-unit-price"
-import Thumbnail from "@modules/products/components/thumbnail"
 
 type ItemProps = {
   item: HttpTypes.StoreCartLineItem | HttpTypes.StoreOrderLineItem
@@ -12,11 +17,32 @@ type ItemProps = {
 }
 
 const Item = ({ item, currencyCode }: ItemProps) => {
+  // Obtener las imágenes de la variante
+  const variantImages = useMemo(() => getVariantImages(item), [item])
+  const thumbnailUrl = variantImages.length > 0 
+    ? variantImages[0]?.url 
+    : item.thumbnail
+
   return (
     <Table.Row className="w-full" data-testid="product-row">
       <Table.Cell className="!pl-0 p-4 w-24">
         <div className="flex w-16">
-          <Thumbnail thumbnail={item.thumbnail} size="square" />
+          <div className="relative w-16 h-16 bg-ui-bg-subtle rounded-large overflow-hidden">
+            {thumbnailUrl ? (
+              <Image
+                src={thumbnailUrl}
+                alt={item.product_title || "Product"}
+                fill
+                className="object-cover object-center"
+                sizes="64px"
+                quality={50}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <PlaceholderImage size={16} />
+              </div>
+            )}
+          </div>
         </div>
       </Table.Cell>
 

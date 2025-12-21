@@ -2,6 +2,7 @@
 
 import { Table, Text, clx } from "@medusajs/ui"
 import { updateLineItem } from "@lib/data/cart"
+import { getVariantImages } from "@lib/util/variant-images"
 import { HttpTypes } from "@medusajs/types"
 import CartItemSelect from "@modules/cart/components/cart-item-select"
 import ErrorMessage from "@modules/checkout/components/error-message"
@@ -12,7 +13,7 @@ import LineItemUnitPrice from "@modules/common/components/line-item-unit-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Spinner from "@modules/common/icons/spinner"
 import Thumbnail from "@modules/products/components/thumbnail"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 
 type ItemProps = {
   item: HttpTypes.StoreCartLineItem
@@ -23,6 +24,12 @@ type ItemProps = {
 const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Obtener las imágenes de la variante
+  const variantImages = useMemo(() => getVariantImages(item), [item])
+  const thumbnailUrl = variantImages.length > 0 
+    ? variantImages[0]?.url 
+    : item.thumbnail
 
   const changeQuantity = async (quantity: number) => {
     setError(null)
@@ -55,8 +62,8 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
           })}
         >
           <Thumbnail
-            thumbnail={item.thumbnail}
-            images={item.variant?.product?.images}
+            thumbnail={thumbnailUrl || null}
+            images={variantImages}
             size="square"
           />
         </LocalizedClientLink>
