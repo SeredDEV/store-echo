@@ -35,13 +35,24 @@ const SortProducts = ({
   }
 
   return (
-    <FilterRadioGroup
-      title="Sort by"
-      items={sortOptions}
-      value={sortBy}
-      handleChange={handleChange}
-      data-testid={dataTestId}
-    />
+    <div className="space-y-2">
+      {sortOptions.map((option) => (
+        <label
+          key={option.value}
+          className="flex items-center gap-2 cursor-pointer hover:text-gray-900 transition-colors"
+        >
+          <input
+            type="radio"
+            name="sort"
+            value={option.value}
+            checked={option.value === sortBy}
+            onChange={() => handleChange(option.value as SortOptions)}
+            className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
+          />
+          <span className="text-sm text-gray-600">{option.label}</span>
+        </label>
+      ))}
+    </div>
   )
 }
 

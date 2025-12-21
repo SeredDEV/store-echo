@@ -5,6 +5,7 @@ import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Thumbnail from "../thumbnail"
 import PreviewPrice from "./price"
+import FavoriteButton from "./favorite-button"
 
 export default async function ProductPreview({
   product,
@@ -29,23 +30,34 @@ export default async function ProductPreview({
   })
 
   return (
-    <LocalizedClientLink href={`/products/${product.handle}`} className="group">
-      <div data-testid="product-wrapper">
-        <Thumbnail
-          thumbnail={product.thumbnail}
-          images={product.images}
-          size="full"
-          isFeatured={isFeatured}
-        />
-        <div className="flex txt-compact-medium mt-4 justify-between">
-          <Text className="text-ui-fg-subtle" data-testid="product-title">
+    <div className="group" data-testid="product-wrapper">
+      <LocalizedClientLink href={`/products/${product.handle}`} className="block mb-3">
+        <div className="overflow-hidden rounded-lg">
+          <Thumbnail
+            thumbnail={product.thumbnail}
+            images={product.images}
+            size="full"
+            isFeatured={isFeatured}
+          />
+        </div>
+      </LocalizedClientLink>
+      
+      <div className="space-y-1">
+        <LocalizedClientLink href={`/products/${product.handle}`} className="block">
+          <Text className="text-sm font-semibold text-gray-900 uppercase group-hover:text-gray-700 transition-colors leading-tight" data-testid="product-title">
             {product.title}
           </Text>
-          <div className="flex items-center gap-x-2">
-            {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
-          </div>
+        </LocalizedClientLink>
+        
+        <div className="flex items-center justify-between">
+          {cheapestPrice && (
+            <div className="text-lg font-semibold text-gray-900">
+              {cheapestPrice.calculated_price}
+            </div>
+          )}
+          <FavoriteButton />
         </div>
       </div>
-    </LocalizedClientLink>
+    </div>
   )
 }

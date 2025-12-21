@@ -41,7 +41,9 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       )}
       data-testid={dataTestid}
     >
-      <ImageOrPlaceholder image={initialImage} size={size} />
+      <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
+        <ImageOrPlaceholder image={initialImage} size={size} />
+      </div>
     </Container>
   )
 }
