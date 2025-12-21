@@ -26,9 +26,37 @@ const CartDropdown = ({
     undefined
   )
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [dropdownRight, setDropdownRight] = useState<number>(16)
 
-  const open = () => setCartDropdownOpen(true)
+  const open = () => {
+    setCartDropdownOpen(true)
+  }
   const close = () => setCartDropdownOpen(false)
+
+  // Calcular la posición cuando el dropdown está abierto
+  useEffect(() => {
+    if (cartDropdownOpen && buttonRef.current) {
+      const calculatePosition = () => {
+        if (buttonRef.current) {
+          const rect = buttonRef.current.getBoundingClientRect()
+          const windowWidth = window.innerWidth
+          // Calcular right desde el borde derecho del botón, y restar un poco para moverlo más a la derecha
+          const right = windowWidth - rect.right - 12
+          setDropdownRight(Math.max(8, right))
+        }
+      }
+      
+      calculatePosition()
+      window.addEventListener('resize', calculatePosition)
+      window.addEventListener('scroll', calculatePosition)
+      
+      return () => {
+        window.removeEventListener('resize', calculatePosition)
+        window.removeEventListener('scroll', calculatePosition)
+      }
+    }
+  }, [cartDropdownOpen])
 
   const totalItems =
     cartState?.items?.reduce((acc, item) => {
@@ -80,7 +108,7 @@ const CartDropdown = ({
       onMouseLeave={close}
     >
       <Popover className="relative h-full">
-        <PopoverButton className="h-full flex items-center">
+        <PopoverButton ref={buttonRef} className="h-full flex items-center">
           <LocalizedClientLink
             className="hover:text-ui-fg-base transition-colors p-2 relative flex items-center justify-center"
             href="/cart"
@@ -118,7 +146,11 @@ const CartDropdown = ({
         >
           <PopoverPanel
             static
-            className="hidden small:block absolute top-[calc(100%+1px)] right-0 bg-white border-x border-b border-gray-200 w-[420px] text-ui-fg-base"
+            className="hidden small:block fixed bg-white border-x border-b border-gray-200 w-[420px] text-ui-fg-base shadow-lg z-50"
+            style={{
+              top: '80px', // h-20 = 80px
+              right: `${dropdownRight}px`
+            }}
             data-testid="nav-cart-dropdown"
           >
             <div className="p-4 flex items-center justify-center">
@@ -151,8 +183,8 @@ const CartDropdown = ({
                         </LocalizedClientLink>
                         <div className="flex flex-col justify-between flex-1">
                           <div className="flex flex-col flex-1">
-                            <div className="flex items-start justify-between">
-                              <div className="flex flex-col overflow-ellipsis whitespace-nowrap mr-4 w-[180px]">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex flex-col flex-1 min-w-0">
                                 <h3 className="text-base-regular overflow-hidden text-ellipsis">
                                   <LocalizedClientLink
                                     href={`/products/${item.product_handle}`}
@@ -167,13 +199,14 @@ const CartDropdown = ({
                                   data-value={item.variant}
                                 />
                                 <span
+                                  className="text-sm text-gray-600"
                                   data-testid="cart-item-quantity"
                                   data-value={item.quantity}
                                 >
                                   Quantity: {item.quantity}
                                 </span>
                               </div>
-                              <div className="flex justify-end">
+                              <div className="flex items-center justify-end flex-shrink-0">
                                 <LineItemPrice
                                   item={item}
                                   style="tight"
