@@ -3,13 +3,11 @@
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
     "workspaceFolder": "/workspaces/store-echo",
-    // Features to install
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {
             "version": "latest"
         }
     },
-    // Configure tool-specific properties
     "customizations": {
         "vscode": {
             "extensions": [
@@ -39,15 +37,14 @@
             }
         }
     },
-    // Use 'forwardPorts' to make a list of ports inside the container available locally
     "forwardPorts": [
-        9000, // Medusa Backend
-        5173, // Medusa Admin (Vite HMR)
-        8000, // Next.js Storefront
-        5432, // PostgreSQL
-        6379 // Redis
+        9000,
+        5173,
+        8000,
+        5432,
+        6379,
+        7700
     ],
-    // Port labels for better identification
     "portsAttributes": {
         "9000": {
             "label": "Medusa Backend",
@@ -68,14 +65,18 @@
         "6379": {
             "label": "Redis",
             "onAutoForward": "silent"
+        },
+        "7700": {
+            "label": "Meilisearch",
+            "onAutoForward": "silent"
         }
     },
-    // Using root user for full administrative privileges
     "remoteUser": "root",
-    // Environment variables
     "containerEnv": {
         "NODE_ENV": "development",
         "DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/store_echo",
-        "REDIS_URL": "redis://redis:6379"
+        "REDIS_URL": "redis://redis:6379",
+        "MEILISEARCH_HOST": "http://meilisearch:7700",
+        "MEILISEARCH_PRODUCT_INDEX_NAME": "products"
     }
 }

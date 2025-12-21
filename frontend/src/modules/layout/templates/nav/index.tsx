@@ -11,6 +11,7 @@ import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
 import User from "@modules/common/icons/user"
 import CategoryDropdown from "@modules/layout/components/category-dropdown"
+import SearchBar from "@modules/search/components/search-bar"
 
 export default async function Nav() {
   const [regions, locales, currentLocale, categories] = await Promise.all([
@@ -35,14 +36,7 @@ export default async function Nav() {
 
           {/* Search Bar and Categories */}
           <div className="flex-1 flex items-center gap-2 max-w-3xl mx-4">
-            <div className="flex-1 relative">
-              <MagnifyingGlass className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search your favorite product..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
-              />
-            </div>
+            <SearchBar />
             <CategoryDropdown categories={categories || []} />
             <LocalizedClientLink
               href="/store"

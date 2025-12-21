@@ -1,5 +1,6 @@
 import { getLocaleHeader } from "@lib/util/get-locale-header"
 import Medusa, { FetchArgs, FetchInput } from "@medusajs/js-sdk"
+import { instantMeiliSearch } from "@meilisearch/instant-meilisearch"
 
 // Defaults to standard port for Medusa server
 let MEDUSA_BACKEND_URL = "http://localhost:9000"
@@ -37,3 +38,9 @@ sdk.client.fetch = async <T>(
   }
   return originalFetch(input, init)
 }
+
+// Meilisearch client configuration
+export const { searchClient } = instantMeiliSearch(
+  process.env.NEXT_PUBLIC_MEILISEARCH_HOST || "",
+  process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY || ""
+)

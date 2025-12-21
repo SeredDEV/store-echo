@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Main development container
@@ -14,6 +14,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      meilisearch:
+        condition: service_healthy
     environment:
       # Medusa
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/store_echo
@@ -24,6 +26,11 @@ services:
 
       # Next.js
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
+
+      # Meilisearch
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_API_KEY:
+      MEILISEARCH_PRODUCT_INDEX_NAME: products
     ports:
       - "9000:9000" # Medusa Backend
       - "5173:5173" # Medusa Admin (Vite)
@@ -43,7 +50,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,7 +66,36 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Meilisearch Search Engine
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: medusa_meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    environment:
+      MEILI_ENV: development
+      # Para desarrollo local, no configuramos MEILI_MASTER_KEY
+      # Esto permite usar Meilisearch sin autenticación
+      # Para producción, descomenta y configura:
+      # MEILI_MASTER_KEY: your_master_key_here
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:7700/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,5 +103,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
-
-
+  meilisearch_data:

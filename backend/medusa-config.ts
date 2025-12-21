@@ -93,5 +93,20 @@ module.exports = defineConfig({
     //     },
     //   },
     // },
+    // Meilisearch Module - Para búsqueda avanzada
+    // Solo se carga si MEILISEARCH_HOST está configurado
+    ...(process.env.MEILISEARCH_HOST
+      ? [
+          {
+            resolve: "./src/modules/meilisearch",
+            options: {
+              host: process.env.MEILISEARCH_HOST,
+              apiKey: process.env.MEILISEARCH_API_KEY || undefined,
+              productIndexName:
+                process.env.MEILISEARCH_PRODUCT_INDEX_NAME || "products",
+            },
+          },
+        ]
+      : []),
   ],
 });

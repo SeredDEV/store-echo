@@ -15,6 +15,10 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "meilisearch:reindex": "medusa exec ./src/scripts/reindex-meilisearch.ts",
+    "meilisearch:init": "medusa exec ./src/scripts/reindex-meilisearch-simple.ts",
+    "meilisearch:reindex-http": "medusa exec ./src/scripts/reindex-meilisearch-http.ts",
+    "meilisearch:reindex-direct": "medusa exec ./src/scripts/reindex-meilisearch-direct.ts",
     "db:rollback": "medusa db:rollback --modules stock_location inventory product pricing promotion customer sales_channel cart region api_key store tax currency payment order settings auth user fulfillment notification cache event_bus workflows locking file",
     "db:migrate": "medusa db:migrate",
     "db:drop": "medusa exec ./src/scripts/drop-db.ts",
@@ -30,7 +34,8 @@
     "@medusajs/admin-sdk": "2.12.3",
     "@medusajs/cli": "2.12.3",
     "@medusajs/framework": "2.12.3",
-    "@medusajs/medusa": "2.12.3"
+    "@medusajs/medusa": "2.12.3",
+    "meilisearch": "^0.54.0"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.12.3",
