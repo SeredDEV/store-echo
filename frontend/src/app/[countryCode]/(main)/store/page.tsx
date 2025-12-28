@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   description: "Explore all of our products.",
 }
 
+// Hacer la página dinámica para obtener datos frescos
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Params = {
   searchParams: Promise<{
     sortBy?: SortOptions

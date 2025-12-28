@@ -13,11 +13,11 @@ export default async function ProductActionsWrapper({
   id: string
   region: HttpTypes.StoreRegion
 }) {
-  // Usar no-cache para obtener precios frescos cuando cambia la variante
+  // Usar no-cache para obtener precios frescos (la página ya es dinámica)
   const product = await listProducts({
     queryParams: { id: [id] },
     regionId: region.id,
-    useCache: false, // Desactivar caché para obtener precios actualizados
+    useCache: false, // No usar caché para obtener datos frescos
   }).then(({ response }) => response.products[0])
 
   if (!product) {

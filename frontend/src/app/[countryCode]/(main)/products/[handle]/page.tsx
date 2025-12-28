@@ -55,18 +55,18 @@ export async function generateStaticParams() {
 function getImagesForVariant(
   product: HttpTypes.StoreProduct,
   selectedVariantId?: string
-) {
+): HttpTypes.StoreProductImage[] {
   if (!selectedVariantId || !product.variants) {
-    return product.images
+    return product.images || []
   }
 
-  const variant = product.variants!.find((v) => v.id === selectedVariantId)
-  if (!variant || !variant.images.length) {
-    return product.images
+  const variant = product.variants.find((v) => v.id === selectedVariantId)
+  if (!variant || !variant.images || variant.images.length === 0) {
+    return product.images || []
   }
 
   const imageIdsMap = new Map(variant.images.map((i) => [i.id, true]))
-  return product.images!.filter((i) => imageIdsMap.has(i.id))
+  return (product.images || []).filter((i) => imageIdsMap.has(i.id))
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -98,8 +98,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 }
 
-// Hacer la página dinámica cuando hay v_id para evitar caché de precios
-export const dynamic = 'force-dynamic'
+// Hacer la página dinámica para obtener datos frescos
+export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export default async function ProductPage(props: Props) {
@@ -113,11 +113,11 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
-  // Usar no-cache cuando hay v_id para obtener precios frescos de la variante
+  // Usar no-store para obtener precios frescos (la página ya es dinámica)
   const pricedProduct = await listProducts({
     countryCode: params.countryCode,
     queryParams: { handle: params.handle },
-    useCache: !selectedVariantId, // Desactivar caché si hay variante seleccionada
+    useCache: false, // No usar caché para obtener datos frescos
   }).then(({ response }) => response.products[0])
 
   const images = getImagesForVariant(pricedProduct, selectedVariantId)
