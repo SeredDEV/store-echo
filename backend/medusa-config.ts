@@ -70,6 +70,19 @@ module.exports = defineConfig({
         },
       },
     },
+    // Fulfillment Module - Para gestión de envíos
+    // Documentación: https://docs.medusajs.com/resources/commerce-modules/fulfillment
+    {
+      resolve: "@medusajs/medusa/fulfillment",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/fulfillment-manual",
+            id: "manual",
+          },
+        ],
+      },
+    },
     // Meilisearch Module - Para búsqueda avanzada
     // Solo se carga si MEILISEARCH_HOST está configurado
     ...(process.env.MEILISEARCH_HOST

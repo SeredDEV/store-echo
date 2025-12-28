@@ -1,0 +1,42 @@
+{
+  "brands": {
+    "title": "Marcas",
+    "description": "Administra las marcas de tus productos"
+  },
+  "done": "Hecho",
+  "refundReasons": {
+    "domain": "Razones de Reembolso",
+    "subtitle": "Administra las razones para emitir reembolsos.",
+    "calloutHint": "Administra las razones para categorizar reembolsos.",
+    "editReason": "Editar Razón de Reembolso",
+    "create": {
+      "header": "Agregar Razón de Reembolso",
+      "subtitle": "Especifica las razones más comunes para reembolsos.",
+      "hint": "Crea una nueva razón de reembolso para categorizar reembolsos.",
+      "successToast": "La razón de reembolso {{label}} fue creada exitosamente."
+    },
+    "edit": {
+      "header": "Editar Razón de Reembolso",
+      "subtitle": "Edita el valor de la razón de reembolso.",
+      "successToast": "La razón de reembolso {{label}} fue actualizada exitosamente."
+    },
+    "delete": {
+      "confirmation": "Estás a punto de eliminar la razón de reembolso \"{{label}}\". Esta acción no se puede deshacer.",
+      "successToast": "La razón de reembolso fue eliminada exitosamente."
+    },
+    "fields": {
+      "label": {
+        "label": "Etiqueta",
+        "placeholder": "Gesto de buena voluntad"
+      },
+      "code": {
+        "label": "Código",
+        "placeholder": "gesto_de_buena_voluntad"
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "El cliente tuvo una mala experiencia de compra"
+      }
+    }
+  }
+}
