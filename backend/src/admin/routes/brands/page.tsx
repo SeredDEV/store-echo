@@ -1,5 +1,11 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { Tag, PlusMini, Trash, PencilSquare } from "@medusajs/icons";
+import {
+  Tag,
+  PlusMini,
+  Trash,
+  PencilSquare,
+  EllipsisHorizontal,
+} from "@medusajs/icons";
 import {
   Container,
   Heading,
@@ -12,6 +18,8 @@ import {
   Switch,
   toast,
   Prompt,
+  DropdownMenu,
+  IconButton,
 } from "@medusajs/ui";
 import { useState, useEffect } from "react";
 
@@ -163,22 +171,25 @@ const BrandsPage = () => {
                     )}
                   </Table.Cell>
                   <Table.Cell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="transparent"
-                        size="small"
-                        onClick={() => handleEdit(brand)}
-                      >
-                        <PencilSquare />
-                      </Button>
-                      <Button
-                        variant="transparent"
-                        size="small"
-                        onClick={() => handleDelete(brand.id)}
-                      >
-                        <Trash />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenu.Trigger asChild>
+                        <IconButton variant="transparent">
+                          <EllipsisHorizontal />
+                        </IconButton>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item onClick={() => handleEdit(brand)}>
+                          <PencilSquare className="mr-2" />
+                          Editar
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onClick={() => handleDelete(brand.id)}
+                        >
+                          <Trash className="mr-2" />
+                          Eliminar
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu>
                   </Table.Cell>
                 </Table.Row>
               ))}
