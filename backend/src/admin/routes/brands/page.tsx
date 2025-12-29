@@ -42,7 +42,7 @@ const BrandsPage = () => {
 
   const fetchBrands = async () => {
     try {
-      const response = await fetch("/brands");
+      const response = await fetch("/admin/brands");
       const data = await response.json();
       setBrands(data.brands || []);
     } catch (error) {
@@ -57,7 +57,9 @@ const BrandsPage = () => {
     e.preventDefault();
 
     try {
-      const url = editingBrand ? `/brands/${editingBrand.id}` : "/brands";
+      const url = editingBrand
+        ? `/admin/brands/${editingBrand.id}`
+        : "/admin/brands";
 
       const response = await fetch(url, {
         method: "POST",
@@ -104,7 +106,7 @@ const BrandsPage = () => {
     if (!confirm("¿Estás seguro de eliminar esta marca?")) return;
 
     try {
-      const response = await fetch(`/brands/${brandId}`, {
+      const response = await fetch(`/admin/brands/${brandId}`, {
         method: "DELETE",
       });
 

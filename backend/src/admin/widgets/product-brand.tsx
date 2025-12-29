@@ -24,7 +24,7 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
 
   const fetchBrands = async () => {
     try {
-      const response = await fetch("/brands");
+      const response = await fetch("/admin/brands");
       const result = await response.json();
       setBrands(result.brands || []);
     } catch (error) {
@@ -34,13 +34,23 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
 
   const fetchProductBrand = async () => {
     try {
-      const response = await fetch(`/products-with-brands/${data.id}`);
+      // Usar query API del admin que ya tiene autenticación
+      const response = await fetch(`/admin/products/${data.id}`);
       const result = await response.json();
-      if (result.product?.brand) {
-        setCurrentBrand(result.product.brand);
-        setSelectedBrandId(result.product.brand.id);
-      }
-    } catch (error) {
+      
+      // Intentar obtener la marca vinculada usando query
+      const queryService = (window as any).medusa?.query;
+      if (queryService) {
+        const { data: productData } = await queryService.graph({
+          entity: "product",
+          fields: ["id", "brand.*"],
+          filters: { id: data.id },
+        });
+
+        if (productData && productData[0]?.brand) {
+          setCurrentBrand(productData[0].brand);
+          setSelectedBrandId(productData[0].brand.id);
+        }
       console.error("Error fetching product brand:", error);
     }
   };
@@ -53,7 +63,7 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
 
     setLoading(true);
     try {
-      const response = await fetch(`/products/${data.id}/brand`, {
+      const response = await fetch(`/admin/products/${data.id}/brand`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brand_id: selectedBrandId }),
@@ -78,7 +88,7 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
 
     setLoading(true);
     try {
-      const response = await fetch(`/products/${data.id}/brand`, {
+      const response = await fetch(`/admin/products/${data.id}/brand`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brand_id: currentBrand.id }),
