@@ -1,18 +1,19 @@
-import { ExecArgs } from "@medusajs/framework"
-import { reindexProductsWorkflow } from "../workflows/reindex-products"
+import type { ExecArgs } from "@medusajs/framework/types";
+import { reindexProductsWorkflow } from "../workflows/reindex-products";
 
 export default async function reindexMeilisearch({ container }: ExecArgs) {
   try {
-    console.log("🔄 Iniciando reindexación de productos en Meilisearch...")
+    console.log("🔄 Iniciando reindexación de productos en Meilisearch...");
 
     const { result } = await reindexProductsWorkflow(container).run({
       input: {},
-    })
+    });
 
-    console.log(`✅ Reindexación completada: ${result.indexed} productos indexados`)
+    console.log(
+      `✅ Reindexación completada: ${result.indexed} productos indexados`
+    );
   } catch (error) {
-    console.error("❌ Error durante la reindexación:", error)
-    throw error
+    console.error("❌ Error durante la reindexación:", error);
+    throw error;
   }
 }
-

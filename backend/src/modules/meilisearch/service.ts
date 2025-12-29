@@ -1,4 +1,3 @@
-import { MeiliSearch } from "meilisearch";
 import { MedusaError } from "@medusajs/framework/utils";
 
 type MeilisearchOptions = {
@@ -10,7 +9,7 @@ type MeilisearchOptions = {
 export type MeilisearchIndexType = "product";
 
 export default class MeilisearchModuleService {
-  private client: MeiliSearch;
+  private client: any;
   private options: MeilisearchOptions;
 
   constructor({}, options: MeilisearchOptions) {
@@ -27,6 +26,8 @@ export default class MeilisearchModuleService {
     if (options.apiKey) {
       clientOptions.apiKey = options.apiKey;
     }
+    // Usar require para MeiliSearch para evitar problemas con ESM/CommonJS
+    const { MeiliSearch } = require("meilisearch");
     this.client = new MeiliSearch(clientOptions);
     this.options = options;
 

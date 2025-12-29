@@ -98,5 +98,9 @@ module.exports = defineConfig({
           },
         ]
       : []),
+    // Brand Module - Módulo personalizado para gestión de marcas
+    {
+      resolve: "./src/modules/brand",
+    },
   ],
 });
