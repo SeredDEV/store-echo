@@ -3,6 +3,9 @@
     "title": "Marcas",
     "description": "Administra las marcas de tus productos"
   },
+  "fields": {
+    "subtitle": "Descripción corta"
+  },
   "done": "Hecho",
   "refundReasons": {
     "domain": "Razones de Reembolso",
