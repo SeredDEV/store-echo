@@ -37,7 +37,7 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
       // Usar query API del admin que ya tiene autenticación
       const response = await fetch(`/admin/products/${data.id}`);
       const result = await response.json();
-      
+
       // Intentar obtener la marca vinculada usando query
       const queryService = (window as any).medusa?.query;
       if (queryService) {
@@ -51,6 +51,8 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
           setCurrentBrand(productData[0].brand);
           setSelectedBrandId(productData[0].brand.id);
         }
+      }
+    } catch (error) {
       console.error("Error fetching product brand:", error);
     }
   };
@@ -69,7 +71,10 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
         body: JSON.stringify({ brand_id: selectedBrandId }),
       });
 
-      if (!response.ok) throw new Error("Error al asignar marca");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Error al asignar marca");
+      }
 
       toast.success("Éxito", {
         description: "Marca asignada correctamente",
@@ -77,7 +82,13 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
 
       fetchProductBrand();
     } catch (error) {
-      toast.error("Error", { description: "No se pudo asignar la marca" });
+      console.error("Error asignando marca:", error);
+      toast.error("Error", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo asignar la marca",
+      });
     } finally {
       setLoading(false);
     }
@@ -94,7 +105,10 @@ const ProductBrandWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
         body: JSON.stringify({ brand_id: currentBrand.id }),
       });
 
-      if (!response.ok) throw new Error("Error al desvincular marca");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Error al desvincular marca");
+      }
 
       toast.success("Éxito", {
         description: "Marca desvinculada correctamente",
