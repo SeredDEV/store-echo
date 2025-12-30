@@ -5053,7 +5053,7 @@
 
 "@rollup/rollup-linux-x64-musl@4.54.0":
   version "4.54.0"
-  resolved "https://registry.yarnpkg.com/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.54.0.tgz#810134b4a9d0d88576938f2eed38999a653814a1"
+  resolved "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.54.0.tgz"
   integrity sha512-JzQmb38ATzHjxlPHuTH6tE7ojnMKM2kYNzt44LO/jJi8BpceEC8QuXYA908n8r3CNuG/B3BV8VR3Hi1rYtmPiw==
 
 "@rollup/rollup-openharmony-arm64@4.54.0":
@@ -5668,6 +5668,14 @@
     color "^5.0.2"
     text-hex "1.0.x"
 
+"@strapi/client@^1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@strapi/client/-/client-1.6.0.tgz#95a1c77514da7744c250c0f7157309b1b6440800"
+  integrity sha512-lSJMxF0JuZzZmpBS/Fpzj4ZPKZsB3leVAoQjdeY4IJ57S2FlnFkm/mM35bcHbri5UdbCUhfiL6QtuoA8p8Fp2w==
+  dependencies:
+    debug "4.4.0"
+    qs "6.14.0"
+
 "@swc/core-darwin-arm64@1.15.7":
   version "1.15.7"
   resolved "https://registry.yarnpkg.com/@swc/core-darwin-arm64/-/core-darwin-arm64-1.15.7.tgz#b7ac4660d2d4df324f4f5a6f58a0c3d44d71ff1c"
@@ -5700,7 +5708,7 @@
 
 "@swc/core-linux-x64-musl@1.15.7":
   version "1.15.7"
-  resolved "https://registry.yarnpkg.com/@swc/core-linux-x64-musl/-/core-linux-x64-musl-1.15.7.tgz#d5c88a8c367baf9f6b4215e8f6c9eae680451087"
+  resolved "https://registry.npmjs.org/@swc/core-linux-x64-musl/-/core-linux-x64-musl-1.15.7.tgz"
   integrity sha512-kVuy2unodso6p0rMauS2zby8/bhzoGRYxBDyD6i2tls/fEYAE74oP0VPFzxIyHaIjK1SN6u5TgvV9MpyJ5xVug==
 
 "@swc/core-win32-arm64-msvc@1.15.7":
@@ -7120,6 +7128,13 @@ debug@4.3.4:
   integrity sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==
   dependencies:
     ms "2.1.2"
+
+debug@4.4.0:
+  version "4.4.0"
+  resolved "https://registry.npmjs.org/debug/-/debug-4.4.0.tgz"
+  integrity sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==
+  dependencies:
+    ms "^2.1.3"
 
 debug@^4.1.0, debug@^4.1.1, debug@^4.3.1, debug@^4.3.4, debug@^4.3.5:
   version "4.4.3"
@@ -9069,7 +9084,7 @@ media-typer@0.3.0:
 
 meilisearch@^0.54.0:
   version "0.54.0"
-  resolved "https://registry.yarnpkg.com/meilisearch/-/meilisearch-0.54.0.tgz#8fc831d7ec80b79c46f13e80b519fa27abfd7df0"
+  resolved "https://registry.npmjs.org/meilisearch/-/meilisearch-0.54.0.tgz"
   integrity sha512-b1bwJAEfj8C6hgSN88+/LvW3pe3nWC+thBS2seAbPZGakf/vzsLqppgZquiomzCr2GhU7U7H289625qhYe3rbw==
 
 merge-descriptors@1.0.3:
@@ -9915,7 +9930,7 @@ pure-rand@^6.0.0:
   resolved "https://registry.npmjs.org/pure-rand/-/pure-rand-6.1.0.tgz"
   integrity sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==
 
-qs@^6.11.0, qs@^6.12.1, qs@~6.14.0:
+qs@6.14.0, qs@^6.11.0, qs@^6.12.1, qs@~6.14.0:
   version "6.14.0"
   resolved "https://registry.npmjs.org/qs/-/qs-6.14.0.tgz"
   integrity sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==

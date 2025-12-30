@@ -1,82 +1,79 @@
 {
-    "name": "Tienda Domótica - Medusa + Next.js",
-    "dockerComposeFile": "docker-compose.yml",
-    "service": "app",
-    "workspaceFolder": "/workspaces/store-echo",
-    "features": {
-        "ghcr.io/devcontainers/features/github-cli:1": {
-            "version": "latest"
-        }
-    },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode",
-                "bradlc.vscode-tailwindcss",
-                "ms-azuretools.vscode-docker",
-                "ms-vscode.vscode-typescript-next",
-                "prisma.prisma",
-                "redhat.vscode-yaml",
-                "streetsidesoftware.code-spell-checker",
-                "eamodio.gitlens",
-                "github.copilot",
-                "formulahendry.auto-rename-tag",
-                "christian-kohler.path-intellisense",
-                "dsznajder.es7-react-js-snippets"
-            ],
-            "settings": {
-                "terminal.integrated.defaultProfile.linux": "zsh",
-                "editor.formatOnSave": true,
-                "editor.defaultFormatter": "esbenp.prettier-vscode",
-                "editor.codeActionsOnSave": {
-                    "source.fixAll.eslint": "explicit"
-                },
-                "typescript.tsdk": "node_modules/typescript/lib",
-                "typescript.enablePromptUseWorkspaceTsdk": true
-            }
-        }
-    },
-    "forwardPorts": [
-        9000,
-        5173,
-        8000,
-        5432,
-        6379,
-        7700
-    ],
-    "portsAttributes": {
-        "9000": {
-            "label": "Medusa Backend",
-            "onAutoForward": "notify"
-        },
-        "5173": {
-            "label": "Medusa Admin (Vite)",
-            "onAutoForward": "silent"
-        },
-        "8000": {
-            "label": "Next.js Storefront",
-            "onAutoForward": "openBrowser"
-        },
-        "5432": {
-            "label": "PostgreSQL",
-            "onAutoForward": "silent"
-        },
-        "6379": {
-            "label": "Redis",
-            "onAutoForward": "silent"
-        },
-        "7700": {
-            "label": "Meilisearch",
-            "onAutoForward": "silent"
-        }
-    },
-    "remoteUser": "root",
-    "containerEnv": {
-        "NODE_ENV": "development",
-        "DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/store_echo",
-        "REDIS_URL": "redis://redis:6379",
-        "MEILISEARCH_HOST": "http://meilisearch:7700",
-        "MEILISEARCH_PRODUCT_INDEX_NAME": "products"
+  "name": "Tienda Domótica - Medusa + Next.js",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/store-echo",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
     }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode.vscode-typescript-next",
+        "prisma.prisma",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "github.copilot",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense",
+        "dsznajder.es7-react-js-snippets"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true
+      }
+    }
+  },
+  "forwardPorts": [9000, 5173, 8000, 1337, 5432, 6379, 7700],
+  "portsAttributes": {
+    "9000": {
+      "label": "Medusa Backend",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Medusa Admin (Vite)",
+      "onAutoForward": "silent"
+    },
+    "8000": {
+      "label": "Next.js Storefront",
+      "onAutoForward": "openBrowser"
+    },
+    "1337": {
+      "label": "Strapi CMS",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    },
+    "7700": {
+      "label": "Meilisearch",
+      "onAutoForward": "silent"
+    }
+  },
+  "remoteUser": "root",
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/store_echo",
+    "REDIS_URL": "redis://redis:6379",
+    "MEILISEARCH_HOST": "http://meilisearch:7700",
+    "MEILISEARCH_PRODUCT_INDEX_NAME": "products"
+  }
 }

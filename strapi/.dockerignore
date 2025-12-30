@@ -1,0 +1,11 @@
+.tmp/
+.cache/
+.git/
+build/
+node_modules/
+data.db
+data.db-journal
+
+*.md
+.env*
+!.env.example

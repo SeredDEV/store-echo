@@ -16,6 +16,8 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+      strapi:
+        condition: service_started
     environment:
       # Medusa
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/store_echo
@@ -45,10 +47,12 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: store_echo
+      POSTGRES_MULTIPLE_DATABASES: strapi_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -99,6 +103,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Strapi CMS
+  strapi:
+    build:
+      context: ../strapi
+      dockerfile: Dockerfile
+    container_name: medusa_strapi
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1337
+      # Database
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: strapi_db
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_SSL: false
+      # Secrets
+      APP_KEYS: toBeModified1,toBeModified2
+      API_TOKEN_SALT: toBeModified
+      ADMIN_JWT_SECRET: toBeModified
+      TRANSFER_TOKEN_SALT: toBeModified
+      JWT_SECRET: toBeModified
+      NODE_ENV: development
+    ports:
+      - "1337:1337"
+    volumes:
+      - ../strapi:/app
+      - /app/node_modules
+    command: yarn develop
 
 volumes:
   postgres_data:

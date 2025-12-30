@@ -114,5 +114,19 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/brand",
     },
+    // Strapi Module - Para gestión de contenido con CMS
+    // Solo se carga si STRAPI_API_URL y STRAPI_API_TOKEN están configurados
+    ...(process.env.STRAPI_API_URL && process.env.STRAPI_API_TOKEN
+      ? [
+          {
+            resolve: "./src/modules/strapi",
+            options: {
+              apiUrl: process.env.STRAPI_API_URL || "http://localhost:1337/api",
+              apiToken: process.env.STRAPI_API_TOKEN || "",
+              defaultLocale: process.env.STRAPI_DEFAULT_LOCALE || "en",
+            },
+          },
+        ]
+      : []),
   ],
 });
