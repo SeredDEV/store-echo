@@ -3,6 +3,18 @@ import { loadEnv, defineConfig } from "@medusajs/framework/utils";
 loadEnv(process.env.NODE_ENV || "development", process.cwd());
 
 module.exports = defineConfig({
+  admin: {
+    // Configuración de Vite para el Admin (devcontainer compatible)
+    vite: (config) => {
+      return {
+        ...config,
+        server: {
+          ...config.server,
+          hmr: false, // Desactivar HMR para evitar errores en devcontainer
+        },
+      };
+    },
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     databaseDriverOptions: {
