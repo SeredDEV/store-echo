@@ -128,5 +128,26 @@ module.exports = defineConfig({
           },
         ]
       : []),
+    // Payment Module - PayU Colombia
+    // Documentación: https://developers.payulatam.com/latam/es/docs.html
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/payu",
+            id: "payu",
+            options: {
+              apiKey: process.env.PAYU_API_KEY,
+              apiLogin: process.env.PAYU_API_LOGIN,
+              merchantId: process.env.PAYU_MERCHANT_ID,
+              accountId: process.env.PAYU_ACCOUNT_ID,
+              publicKey: process.env.PAYU_PUBLIC_KEY,
+              testMode: process.env.PAYU_TEST_MODE === "true",
+            },
+          },
+        ],
+      },
+    },
   ],
 });
