@@ -187,7 +187,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           name: "Colombia",
           currency_code: "cop",
           countries,
-          payment_providers: ["pp_system_default"],
+          payment_providers: ["pp_system_default", "pp_payu_payu"],
         },
       ],
     },

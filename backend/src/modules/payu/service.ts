@@ -22,6 +22,7 @@ import {
   WebhookActionResult,
 } from "@medusajs/framework/types";
 import { MedusaError } from "@medusajs/framework/utils";
+import crypto from "crypto";
 
 type PayUOptions = {
   apiKey: string;
@@ -55,9 +56,18 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
 
     this.logger_ = logger;
     this.options_ = options;
-    this.apiUrl_ =
-      options.apiUrl ||
-      "https://api.payulatam.com/payments-api/4.0/service.cgi";
+
+    // Usar sandbox si testMode está habilitado
+    const defaultUrl = options.testMode
+      ? "https://sandbox.api.payulatam.com/payments-api/4.0/service.cgi"
+      : "https://api.payulatam.com/payments-api/4.0/service.cgi";
+
+    this.apiUrl_ = options.apiUrl || defaultUrl;
+
+    this.logger_.info(
+      `PayU configurado en modo: ${options.testMode ? "SANDBOX" : "PRODUCCIÓN"}`
+    );
+    this.logger_.info(`PayU API URL: ${this.apiUrl_}`);
   }
 
   /**
@@ -71,38 +81,35 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
       const { amount, currency_code, context } = input;
 
       this.logger_.info(
-        `Iniciando sesión de pago con PayU: ${amount} ${currency_code}`
+        `Iniciando sesión de pago con PayU: ${amount} ${currency_code} - context: ${JSON.stringify(
+          context
+        )}`
+      );
+      this.logger_.info(`Input completo: ${JSON.stringify(input)}`);
+
+      // Extraer datos de tarjeta del context si existen
+      const cardData = (context as any)?.data || (input as any)?.data || {};
+
+      this.logger_.info(
+        `Datos de tarjeta extraídos: ${JSON.stringify(cardData)}`
       );
 
-      // TODO: Crear una transacción en PayU
-      // Esto depende de la API de PayU específica de tu región
-      const payuResponse = await this.createPayUTransaction({
-        amount,
-        currency: currency_code,
-        merchantId: this.options_.merchantId,
-        accountId: this.options_.accountId,
-        // Puedes pasar información adicional del carrito/cliente
-        reference: (context as any)?.resource_id || `medusa-${Date.now()}`,
-        description:
-          (context as any)?.payment_description || "Payment from Medusa store",
-      });
-
       // Retornar los datos que Medusa guardará en PaymentSession.data
+      // Incluir los datos de la tarjeta para usarlos después en authorizePayment
       return {
-        id: payuResponse.transactionId,
+        id: `payu-${Date.now()}`, // ID temporal de la sesión
         data: {
-          id: payuResponse.transactionId,
-          status: payuResponse.status,
-          reference: payuResponse.reference,
-          // Cualquier dato adicional que necesites para procesar después
+          amount,
+          currency_code,
+          // Guardar datos de tarjeta en la sesión para usarlos después
+          ...cardData,
         },
       };
     } catch (error) {
-      this.logger_.error("Error iniciando pago con PayU", error);
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `Failed to initiate PayU payment: ${error.message}`
+      this.logger_.error(
+        `Failed to initiate PayU payment: ${(error as Error).message}`
       );
+      throw error;
     }
   }
 
@@ -171,36 +178,210 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
     try {
       const { data, context } = input;
 
-      this.logger_.info(`Autorizando pago con PayU: ${data?.id}`);
+      // Extraer amount y currency_code desde data
+      const cardData = data as any;
+      const amount = cardData?.amount || (input as any).amount;
+      const currency_code =
+        cardData?.currency_code || (input as any).currency_code;
 
-      // TODO: Autorizar el pago en PayU
-      // Esto puede variar según el método de pago (tarjeta, PSE, etc.)
-      const authResponse = await this.authorizePayUTransaction(
-        String(data?.id)
+      this.logger_.info(
+        `Autorizando pago con PayU - data: ${JSON.stringify(data)}`
       );
 
-      // Verificar si requiere acción adicional (ej: 3D Secure, redirección)
-      if (authResponse.requiresAction) {
-        return {
-          status: "requires_more",
-          data: {
-            ...data,
-            status: authResponse.status,
-            actionUrl: authResponse.actionUrl,
-          },
-        };
+      if (!cardData?.card_number) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Datos de tarjeta requeridos para autorizar el pago"
+        );
       }
 
-      // Autorización exitosa
-      return {
-        status: "authorized",
-        data: {
-          ...data,
-          status: authResponse.status,
-          authorized_at: new Date().toISOString(),
-          authorization_code: authResponse.authorizationCode,
+      this.logger_.info(`💰 Monto a cobrar: ${amount} ${currency_code}`);
+      this.logger_.info(`💰 Monto convertido: ${Number(amount)}`);
+
+      // Preparar request a PayU API
+      const payuRequest = {
+        language: "es",
+        command: "SUBMIT_TRANSACTION",
+        merchant: {
+          apiKey: this.options_.apiKey,
+          apiLogin: this.options_.apiLogin,
         },
+        transaction: {
+          order: {
+            accountId: this.options_.accountId,
+            referenceCode: `medusa-${data?.id || Date.now()}`,
+            description: "Pago Store Echo",
+            language: "es",
+            signature: "", // Se calcula después
+            notifyUrl: `${
+              process.env.BACKEND_URL || "http://localhost:9000"
+            }/webhooks/payment/pp_payu/payu`,
+            additionalValues: {
+              TX_VALUE: {
+                value: Number(amount),
+                currency: "COP",
+              },
+            },
+            buyer: {
+              fullName: cardData.holder_name || "Cliente",
+              emailAddress: cardData.payer?.emailAddress || "test@example.com",
+              contactPhone: cardData.payer?.contactPhone || "3001234567",
+              dniNumber: cardData.payer?.dniNumber || "123456789",
+              shippingAddress: cardData.billingAddress || {},
+            },
+          },
+          payer: {
+            fullName: cardData.holder_name || "Cliente",
+            emailAddress: cardData.payer?.emailAddress || "test@example.com",
+            contactPhone: cardData.payer?.contactPhone || "3001234567",
+            dniNumber: cardData.payer?.dniNumber || "123456789",
+            billingAddress: cardData.billingAddress || {},
+          },
+          creditCard: {
+            number: cardData.card_number,
+            securityCode: cardData.cvv,
+            expirationDate: `${
+              cardData.expiry_year
+            }/${cardData.expiry_month.padStart(2, "0")}`,
+            name: cardData.holder_name,
+          },
+          type: "AUTHORIZATION_AND_CAPTURE",
+          paymentMethod: "VISA", // Detectar automáticamente
+          paymentCountry: "CO",
+          deviceSessionId: `${Date.now()}`,
+          ipAddress: "127.0.0.1",
+          cookie: "cookie",
+          userAgent: "Mozilla/5.0",
+        },
+        test: this.options_.testMode,
       };
+
+      // Calcular signature
+      const referenceCode = payuRequest.transaction.order.referenceCode;
+      const amount2 =
+        payuRequest.transaction.order.additionalValues.TX_VALUE.value;
+      const currency =
+        payuRequest.transaction.order.additionalValues.TX_VALUE.currency;
+
+      this.logger_.info(
+        `📝 TX_VALUE antes de signature: ${amount2} ${currency}`
+      );
+
+      const signature = this.generateSignature(
+        referenceCode,
+        amount2,
+        currency
+      );
+      payuRequest.transaction.order.signature = signature;
+
+      this.logger_.info(
+        `📤 Request completo a PayU: ${JSON.stringify(
+          payuRequest.transaction.order.additionalValues
+        )}`
+      );
+      this.logger_.info(`Enviando request a PayU: ${this.apiUrl_}`);
+
+      // Llamar a PayU API
+      const response = await fetch(this.apiUrl_, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payuRequest),
+      });
+
+      const authResponse = await response.json();
+
+      this.logger_.info(`📥 Respuesta completa de PayU:`);
+      this.logger_.info(`   Code: ${authResponse.code}`);
+
+      if (authResponse.transactionResponse) {
+        const tx = authResponse.transactionResponse;
+        this.logger_.info(`   Transaction State: ${tx.state}`);
+        this.logger_.info(
+          `   Transaction Type: ${tx.transactionType || "N/A"}`
+        );
+        this.logger_.info(`   Response Code: ${tx.responseCode}`);
+        this.logger_.info(`   Response Message: ${tx.responseMessage}`);
+        this.logger_.info(`   Transaction ID: ${tx.transactionId}`);
+        this.logger_.info(`   Order ID: ${tx.orderId}`);
+        this.logger_.info(
+          `   Authorization Code: ${tx.authorizationCode || "N/A"}`
+        );
+
+        // Verificar si es AUTHORIZATION_AND_CAPTURE o solo AUTHORIZATION
+        if (tx.additionalInfo?.transactionType) {
+          this.logger_.info(
+            `   ⚠️  Additional Info Transaction Type: ${tx.additionalInfo.transactionType}`
+          );
+        }
+      }
+
+      // Verificar respuesta
+      if (authResponse.code === "SUCCESS") {
+        const transaction = authResponse.transactionResponse;
+
+        // Log para entender qué tipo de transacción hizo PayU
+        this.logger_.info(
+          `🔍 Tipo de transacción procesada: ${
+            transaction.additionalInfo?.transactionType ||
+            payuRequest.transaction.type
+          }`
+        );
+
+        // Mapear estado de PayU a Medusa
+        if (transaction.state === "APPROVED") {
+          // ✅ Captura automática: cuando PayU aprueba, marcamos como capturado
+          return {
+            status: "authorized",
+            data: {
+              ...data,
+              payu_transaction_id: transaction.transactionId,
+              payu_order_id: transaction.orderId,
+              authorization_code: transaction.authorizationCode,
+              status: "approved",
+              response_code: transaction.responseCode,
+              response_message: transaction.responseMessage,
+              authorized_at: new Date().toISOString(),
+              captured_at: new Date().toISOString(), // 🔥 Captura automática
+            },
+          };
+        } else if (transaction.state === "PENDING") {
+          // PENDING también se considera autorizado para completar la orden
+          return {
+            status: "authorized",
+            data: {
+              ...data,
+              payu_transaction_id: transaction.transactionId,
+              payu_order_id: transaction.orderId,
+              authorization_code: transaction.authorizationCode || "PENDING",
+              status: "pending",
+              response_code: transaction.responseCode,
+              response_message: transaction.responseMessage,
+              authorized_at: new Date().toISOString(),
+            },
+          };
+        } else {
+          // DECLINED, ERROR, etc.
+          return {
+            status: "error",
+            data: {
+              ...data,
+              payu_transaction_id: transaction.transactionId,
+              status: "declined",
+              response_code: transaction.responseCode,
+              response_message: transaction.responseMessage,
+              error: transaction.responseMessage,
+            },
+          };
+        }
+      } else {
+        throw new MedusaError(
+          MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+          `PayU error: ${authResponse.error || "Unknown error"}`
+        );
+      }
     } catch (error) {
       this.logger_.error("Error autorizando pago con PayU", error);
 
@@ -225,20 +406,62 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
       const { data } = input;
       const amount = (input as any).amount;
 
-      this.logger_.info(`Capturando pago con PayU: ${data?.id} - ${amount}`);
+      this.logger_.info(`💰 Capturando pago con PayU`);
+      this.logger_.info(`   Transaction ID: ${data?.payu_transaction_id}`);
+      this.logger_.info(`   Order ID: ${data?.payu_order_id}`);
+      this.logger_.info(`   Amount: ${amount}`);
 
-      // TODO: Capturar el pago en PayU
-      const captureResponse = await this.capturePayUTransaction(
-        String(data?.id),
-        typeof amount === "string" ? parseFloat(amount) : Number(amount)
+      // Si ya fue AUTHORIZATION_AND_CAPTURE, PayU ya procesó el pago
+      // Solo actualizamos el estado local
+      if (data?.status === "approved") {
+        this.logger_.info(
+          `✅ Pago ya fue capturado automáticamente por PayU (AUTHORIZATION_AND_CAPTURE)`
+        );
+        return {
+          data: {
+            ...data,
+            captured_amount: amount,
+            captured_at: new Date().toISOString(),
+            status: "captured",
+          },
+        };
+      }
+
+      // Si el pago está en PENDING, intentar capturar con PayU
+      if (data?.payu_order_id && data?.payu_transaction_id) {
+        this.logger_.info(`🔄 Intentando capturar pago pendiente en PayU...`);
+
+        const captureResponse = await this.capturePayUTransaction(
+          String(data.payu_order_id),
+          String(data.payu_transaction_id),
+          Number(amount)
+        );
+
+        this.logger_.info(
+          `✅ Respuesta de captura: ${JSON.stringify(captureResponse)}`
+        );
+
+        return {
+          data: {
+            ...data,
+            captured_amount: amount,
+            captured_at: new Date().toISOString(),
+            capture_response: captureResponse,
+            status: "captured",
+          },
+        };
+      }
+
+      // Si no tenemos IDs de PayU, solo marcar como capturado localmente
+      this.logger_.warn(
+        `⚠️  No se encontraron IDs de PayU, marcando como capturado localmente`
       );
-
       return {
         data: {
           ...data,
           captured_amount: amount,
           captured_at: new Date().toISOString(),
-          capture_id: captureResponse.captureId,
+          status: "captured",
         },
       };
     } catch (error) {
@@ -257,20 +480,36 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
     try {
       const { data, amount } = input;
 
-      this.logger_.info(`Reembolsando pago con PayU: ${data?.id} - ${amount}`);
+      this.logger_.info(`💸 Reembolsando pago con PayU`);
+      this.logger_.info(`   Transaction ID: ${data?.payu_transaction_id}`);
+      this.logger_.info(`   Order ID: ${data?.payu_order_id}`);
+      this.logger_.info(`   Amount: ${amount}`);
 
-      // TODO: Crear reembolso en PayU
+      if (!data?.payu_order_id || !data?.payu_transaction_id) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "No se encontraron IDs de PayU para realizar el reembolso"
+        );
+      }
+
+      // Llamar a PayU para hacer el reembolso
       const refundResponse = await this.refundPayUTransaction(
-        String(data?.id),
-        typeof amount === "string" ? parseFloat(amount) : Number(amount)
+        String(data.payu_order_id),
+        String(data.payu_transaction_id),
+        Number(amount)
+      );
+
+      this.logger_.info(
+        `✅ Respuesta de reembolso: ${JSON.stringify(refundResponse)}`
       );
 
       return {
         data: {
           ...data,
-          refund_id: refundResponse.refundId,
           refunded_amount: amount,
           refunded_at: new Date().toISOString(),
+          refund_response: refundResponse,
+          status: "refunded",
         },
       };
     } catch (error) {
@@ -317,8 +556,11 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
     input: GetPaymentStatusInput
   ): Promise<GetPaymentStatusOutput> {
     try {
-      const paymentId = input.data?.id as string;
-      const paymentStatus = await this.getPayUTransactionStatus(paymentId);
+      const paymentData = input.data as any;
+      const paymentStatus = await this.getPayUTransactionStatus(
+        String(paymentData?.payu_order_id || paymentData?.id),
+        String(paymentData?.payu_transaction_id || paymentData?.id)
+      );
       return {
         status: paymentStatus.status || "pending",
       };
@@ -388,7 +630,8 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
 
       // TODO: Consultar el estado en PayU
       const paymentStatus = await this.getPayUTransactionStatus(
-        String(data?.id)
+        String(data?.payu_order_id || data?.id),
+        String(data?.payu_transaction_id || data?.id)
       );
 
       return {
@@ -408,8 +651,19 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
   }
 
   // ========== Métodos auxiliares para interactuar con PayU API ==========
-  // NOTA: Estos son ejemplos. Debes implementarlos según la API de PayU
-  // de tu región específica (Colombia, México, etc.)
+
+  /**
+   * Genera la firma MD5 para PayU
+   * Formato: ApiKey~merchantId~referenceCode~amount~currency
+   */
+  private generateSignature(
+    referenceCode: string,
+    amount: number,
+    currency: string
+  ): string {
+    const signatureString = `${this.options_.apiKey}~${this.options_.merchantId}~${referenceCode}~${amount}~${currency}`;
+    return crypto.createHash("md5").update(signatureString).digest("hex");
+  }
 
   private async createPayUTransaction(params: any): Promise<any> {
     // TODO: Implementar llamada a PayU API para crear transacción
@@ -450,39 +704,179 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
   }
 
   private async capturePayUTransaction(
+    orderId: string,
     transactionId: string,
     amount: number
   ): Promise<any> {
-    // TODO: Implementar captura con PayU API
-    return {
-      captureId: `CAP-${Date.now()}`,
-      status: "CAPTURED",
-    };
+    try {
+      // PayU requiere hacer una consulta de estado para verificar si se puede capturar
+      // En AUTHORIZATION_AND_CAPTURE el pago ya está capturado
+      // Solo necesitamos hacer CAPTURE si fue AUTHORIZATION solamente
+
+      this.logger_.info(
+        `📞 Consultando estado de transacción en PayU antes de capturar`
+      );
+
+      // Primero consultar el estado actual
+      const statusResponse = await this.getPayUTransactionStatus(
+        orderId,
+        transactionId
+      );
+
+      this.logger_.info(`📊 Estado actual: ${JSON.stringify(statusResponse)}`);
+
+      // Si ya está capturado, retornar éxito
+      if (
+        statusResponse.status === "APPROVED" ||
+        statusResponse.state === "APPROVED"
+      ) {
+        return {
+          status: "CAPTURED",
+          message: "Pago ya estaba capturado en PayU",
+          orderId,
+          transactionId,
+        };
+      }
+
+      // Si está PENDING y necesita captura, hacer la captura
+      // Nota: PayU no tiene endpoint directo de captura, el pago se captura
+      // automáticamente si se usó AUTHORIZATION_AND_CAPTURE
+      this.logger_.warn(
+        `⚠️  PayU no requiere captura manual para AUTHORIZATION_AND_CAPTURE`
+      );
+
+      return {
+        status: "CAPTURED",
+        message: "Pago marcado como capturado",
+        orderId,
+        transactionId,
+      };
+    } catch (error) {
+      this.logger_.error("Error en capturePayUTransaction", error);
+      throw error;
+    }
   }
 
   private async refundPayUTransaction(
+    orderId: string,
     transactionId: string,
     amount: number
   ): Promise<any> {
-    // TODO: Implementar reembolso con PayU API
-    return {
-      refundId: `REF-${Date.now()}`,
-      status: "REFUNDED",
-    };
+    try {
+      this.logger_.info(`📞 Llamando a PayU API para reembolso`);
+
+      // Generar referencia única para el reembolso
+      const refundReference = `refund-${Date.now()}`;
+
+      // Preparar request de reembolso
+      const refundRequest = {
+        language: "es",
+        command: "SUBMIT_TRANSACTION",
+        merchant: {
+          apiKey: this.options_.apiKey,
+          apiLogin: this.options_.apiLogin,
+        },
+        transaction: {
+          order: {
+            id: orderId,
+          },
+          type: "REFUND",
+          reason: "Reembolso solicitado por el merchant",
+          parentTransactionId: transactionId,
+        },
+        test: this.options_.testMode,
+      };
+
+      this.logger_.info(
+        `📤 Request de reembolso: ${JSON.stringify(refundRequest)}`
+      );
+
+      const response = await fetch(this.apiUrl_, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(refundRequest),
+      });
+
+      const refundResponse = await response.json();
+
+      this.logger_.info(
+        `📥 Respuesta de reembolso: ${JSON.stringify(refundResponse)}`
+      );
+
+      if (refundResponse.code === "SUCCESS") {
+        return {
+          status: "REFUNDED",
+          refundId: refundResponse.transactionResponse?.transactionId,
+          orderId,
+          transactionId,
+          message: refundResponse.transactionResponse?.responseMessage,
+        };
+      } else {
+        throw new Error(
+          `PayU refund failed: ${refundResponse.error || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      this.logger_.error("Error en refundPayUTransaction", error);
+      throw error;
+    }
   }
 
   private async cancelPayUTransaction(transactionId: string): Promise<any> {
-    // TODO: Implementar cancelación con PayU API
+    // PayU no tiene un endpoint específico de cancelación
+    // Las transacciones autorizadas se pueden anular haciendo un VOID
+    this.logger_.warn(
+      `⚠️  PayU no soporta cancelación directa, usar reembolso en su lugar`
+    );
     return {
       status: "CANCELLED",
+      message: "Cancelación no implementada en PayU, usar reembolso",
     };
   }
 
-  private async getPayUTransactionStatus(transactionId: string): Promise<any> {
-    // TODO: Implementar consulta de estado con PayU API
-    return {
-      status: "APPROVED",
-    };
+  private async getPayUTransactionStatus(
+    orderId: string,
+    transactionId: string
+  ): Promise<any> {
+    try {
+      this.logger_.info(`📞 Consultando estado de transacción en PayU`);
+
+      const queryRequest = {
+        language: "es",
+        command: "ORDER_DETAIL_BY_REFERENCE_CODE",
+        merchant: {
+          apiKey: this.options_.apiKey,
+          apiLogin: this.options_.apiLogin,
+        },
+        details: {
+          orderId: orderId,
+        },
+        test: this.options_.testMode,
+      };
+
+      const response = await fetch(this.apiUrl_, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(queryRequest),
+      });
+
+      const statusResponse = await response.json();
+
+      this.logger_.info(
+        `📥 Respuesta de estado: ${JSON.stringify(statusResponse)}`
+      );
+
+      return statusResponse.result || { status: "UNKNOWN" };
+    } catch (error) {
+      this.logger_.error("Error en getPayUTransactionStatus", error);
+      throw error;
+    }
   }
 }
 

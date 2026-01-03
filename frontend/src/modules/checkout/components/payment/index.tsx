@@ -1,13 +1,14 @@
 "use client"
 
 import { RadioGroup } from "@headlessui/react"
-import { isStripeLike, paymentInfoMap } from "@lib/constants"
+import { isStripeLike, isPayU, paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
 import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
 import { Button, Container, Heading, Text, clx } from "@medusajs/ui"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import PaymentContainer, {
   StripeCardContainer,
+  PayUCardContainer,
 } from "@modules/checkout/components/payment-container"
 import Divider from "@modules/common/components/divider"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -28,6 +29,7 @@ const Payment = ({
   const [error, setError] = useState<string | null>(null)
   const [cardBrand, setCardBrand] = useState<string | null>(null)
   const [cardComplete, setCardComplete] = useState(false)
+  const [payuCardData, setPayuCardData] = useState<any>(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
     activeSession?.provider_id ?? ""
   )
@@ -41,11 +43,8 @@ const Payment = ({
   const setPaymentMethod = async (method: string) => {
     setError(null)
     setSelectedPaymentMethod(method)
-    if (isStripeLike(method)) {
-      await initiatePaymentSession(cart, {
-        provider_id: method,
-      })
-    }
+    // NO crear sesión aquí, solo seleccionar el método
+    // La sesión se creará en handleSubmit cuando tengamos los datos de tarjeta
   }
 
   const paidByGiftcard =
@@ -73,27 +72,46 @@ const Payment = ({
   const handleSubmit = async () => {
     setIsLoading(true)
     try {
+      console.log("🔵 handleSubmit - selectedPaymentMethod:", selectedPaymentMethod)
+      console.log("🔵 handleSubmit - payuCardData:", payuCardData)
+      console.log("🔵 handleSubmit - activeSession:", activeSession)
+      
       const shouldInputCard =
-        isStripeLike(selectedPaymentMethod) && !activeSession
+        (isStripeLike(selectedPaymentMethod) ||
+          isPayU(selectedPaymentMethod)) &&
+        !activeSession
 
       const checkActiveSession =
         activeSession?.provider_id === selectedPaymentMethod
 
+      console.log("🔵 checkActiveSession:", checkActiveSession)
+
       if (!checkActiveSession) {
-        await initiatePaymentSession(cart, {
+        const sessionData: any = {
           provider_id: selectedPaymentMethod,
-        })
+        }
+
+        // Si es PayU y tenemos datos de tarjeta, incluirlos
+        if (isPayU(selectedPaymentMethod) && payuCardData) {
+          sessionData.data = payuCardData
+          console.log("✅ Agregando datos de tarjeta a la sesión:", sessionData)
+        }
+
+        console.log("🔵 Llamando initiatePaymentSession con:", sessionData)
+        await initiatePaymentSession(cart, sessionData)
+        console.log("✅ initiatePaymentSession completado")
       }
 
-      if (!shouldInputCard) {
-        return router.push(
-          pathname + "?" + createQueryString("step", "review"),
-          {
-            scroll: false,
-          }
-        )
-      }
+      // Navegar a review después de crear la sesión
+      console.log("🔵 Navegando a review")
+      return router.push(
+        pathname + "?" + createQueryString("step", "review"),
+        {
+          scroll: false,
+        }
+      )
     } catch (err: any) {
+      console.error("❌ Error en handleSubmit:", err)
       setError(err.message)
     } finally {
       setIsLoading(false)
@@ -151,6 +169,14 @@ const Payment = ({
                         setError={setError}
                         setCardComplete={setCardComplete}
                       />
+                    ) : isPayU(paymentMethod.id) ? (
+                      <PayUCardContainer
+                        paymentProviderId={paymentMethod.id}
+                        selectedPaymentOptionId={selectedPaymentMethod}
+                        paymentInfoMap={paymentInfoMap}
+                        setCardComplete={setCardComplete}
+                        setCardData={setPayuCardData}
+                      />
                     ) : (
                       <PaymentContainer
                         paymentInfoMap={paymentInfoMap}
@@ -189,13 +215,13 @@ const Payment = ({
             onClick={handleSubmit}
             isLoading={isLoading}
             disabled={
-              (isStripeLike(selectedPaymentMethod) && !cardComplete) ||
+              ((isStripeLike(selectedPaymentMethod) || isPayU(selectedPaymentMethod)) && !cardComplete) ||
               (!selectedPaymentMethod && !paidByGiftcard)
             }
             data-testid="submit-payment-button"
           >
-            {!activeSession && isStripeLike(selectedPaymentMethod)
-              ? " Enter card details"
+            {!activeSession && (isStripeLike(selectedPaymentMethod) || isPayU(selectedPaymentMethod))
+              ? "Enter card details"
               : "Continue to review"}
           </Button>
         </div>
