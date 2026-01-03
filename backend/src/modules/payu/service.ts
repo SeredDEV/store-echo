@@ -119,22 +119,47 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
    */
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
     try {
-      const { amount, currency_code, data } = input;
+      const { amount, currency_code, data, context } = input;
+      const cardData = context?.extra as any;
 
       this.logger_.info(
         `Actualizando sesión de pago con PayU: ${data?.id} - ${amount}`
       );
 
-      // TODO: Actualizar la transacción en PayU si es necesario
-      // Algunas pasarelas permiten actualizar, otras requieren cancelar y crear nueva
+      // Limpiar datos de error previo para permitir reintentos
+      const cleanData: any = {
+        amount,
+        currency_code,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Si hay nuevos datos de tarjeta, actualizarlos
+      if (cardData?.card_number) {
+        cleanData.card_number = cardData.card_number;
+        cleanData.cvv = cardData.cvv;
+        cleanData.expiry_month = cardData.expiry_month;
+        cleanData.expiry_year = cardData.expiry_year;
+        cleanData.holder_name = cardData.holder_name;
+
+        // Limpiar estado de error para permitir reintento
+        this.logger_.info(
+          "🔄 Nueva tarjeta ingresada, limpiando estado de error"
+        );
+      } else {
+        // Mantener datos existentes excepto errores
+        Object.keys(data || {}).forEach((key) => {
+          if (
+            !["error", "status", "response_code", "response_message"].includes(
+              key
+            )
+          ) {
+            cleanData[key] = data[key];
+          }
+        });
+      }
 
       return {
-        data: {
-          ...data,
-          amount,
-          currency_code,
-          updated_at: new Date().toISOString(),
-        },
+        data: cleanData,
       };
     } catch (error) {
       this.logger_.error("Error actualizando pago con PayU", error);
@@ -187,6 +212,17 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
       this.logger_.info(
         `Autorizando pago con PayU - data: ${JSON.stringify(data)}`
       );
+
+      // Si hay un error previo y no hay nuevos datos de tarjeta, rechazar
+      if (cardData?.error && !cardData?.card_number) {
+        this.logger_.warn(
+          `⚠️ Intento de autorizar con error previo sin actualizar datos`
+        );
+        throw new MedusaError(
+          MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+          cardData.error
+        );
+      }
 
       if (!cardData?.card_number) {
         throw new MedusaError(
@@ -363,16 +399,24 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
             },
           };
         } else {
-          // DECLINED, ERROR, etc.
+          // DECLINED, ERROR, etc. - Retornar requires_more para permitir reintento
+          const errorMessage = transaction.responseMessage || "Pago rechazado";
+
+          this.logger_.error(
+            `❌ PayU rechazó el pago: ${transaction.state} - ${errorMessage} (Código: ${transaction.responseCode})`
+          );
+
+          // Retornar requires_more: esto mantiene la sesión activa para reintentos
           return {
-            status: "error",
+            status: "requires_more",
             data: {
               ...data,
               payu_transaction_id: transaction.transactionId,
+              payu_order_id: transaction.orderId,
               status: "declined",
               response_code: transaction.responseCode,
-              response_message: transaction.responseMessage,
-              error: transaction.responseMessage,
+              response_message: errorMessage,
+              error: `Tu tarjeta fue rechazada: ${errorMessage}. Por favor intenta con otra tarjeta.`,
             },
           };
         }
