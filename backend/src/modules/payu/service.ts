@@ -120,7 +120,7 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
     try {
       const { amount, currency_code, data, context } = input;
-      const cardData = context?.extra as any;
+      const cardData = (context as any)?.extra;
 
       this.logger_.info(
         `Actualizando sesión de pago con PayU: ${data?.id} - ${amount}`
@@ -145,9 +145,9 @@ class PayUProviderService extends AbstractPaymentProvider<PayUOptions> {
         this.logger_.info(
           "🔄 Nueva tarjeta ingresada, limpiando estado de error"
         );
-      } else {
+      } else if (data) {
         // Mantener datos existentes excepto errores
-        Object.keys(data || {}).forEach((key) => {
+        Object.keys(data).forEach((key) => {
           if (
             !["error", "status", "response_code", "response_message"].includes(
               key
