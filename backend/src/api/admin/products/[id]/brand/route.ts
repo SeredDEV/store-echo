@@ -6,6 +6,44 @@ type SetBrandRequest = {
   brand_id: string;
 };
 
+export async function GET(
+  req: MedusaRequest<{ id: string }>,
+  res: MedusaResponse
+): Promise<void> {
+  try {
+    const product_id = req.params.id;
+
+    // Obtener Query desde el container
+    const query = req.scope.resolve("query");
+
+    // Consultar la marca del producto
+    const productsWithBrand = await query.graph({
+      entity: "product",
+      fields: ["id", "brand.*"],
+      filters: { id: product_id },
+    });
+
+    // Acceder correctamente a los datos (viene en .data)
+    const productData = productsWithBrand?.data?.[0];
+
+    if (productData?.brand) {
+      res.json({
+        brand: productData.brand,
+      });
+    } else {
+      res.status(404).json({
+        message: "Producto sin marca asignada",
+      });
+    }
+  } catch (error) {
+    console.error("Error al obtener marca:", error);
+    res.status(500).json({
+      message: "Error al obtener marca",
+      error: error.message,
+    });
+  }
+}
+
 export async function POST(
   req: MedusaRequest<{ id: string }>,
   res: MedusaResponse
